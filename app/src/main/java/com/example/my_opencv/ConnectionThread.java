@@ -228,4 +228,5 @@ public class ConnectionThread implements Runnable {
     public static void disconnect(){
         online = false;
     }
+
 }

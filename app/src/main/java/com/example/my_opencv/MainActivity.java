@@ -68,8 +68,8 @@ public class MainActivity extends AppCompatActivity{
         super.onCreate(savedInstanceState);
 
         //launch opencv manager
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
-
+       // OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
+        mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         setContentView(R.layout.activity_main);
 
         //setup gui objects
