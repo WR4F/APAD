@@ -41,13 +41,15 @@ public class ConnectionThread implements Runnable {
     private DataInputStream input;
     private static boolean online;
 
-    private ImageView imagev;
-    private TextView networkstatus;
-    private Button connect_b;
-    private Bitmap raulito;
-    private Context myContext;
+    //gui
+    private final ImageView imagev;
+    private final TextView networkstatus;
+    private final Button connect_b;
+    private final Bitmap raulito;
+    private final Context myContext;
 
-    private Handler myHandler;
+    //gui thread handler
+    private final Handler myHandler;
 
     //Constructor
     public ConnectionThread(String ip, int port, TextView text, ImageView view, Button b, Context c, String path) throws IOException {
