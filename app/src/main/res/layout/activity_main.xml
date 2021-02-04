@@ -6,30 +6,21 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/opencvImageView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
-
     <Button
-        android:id="@+id/connect_b"
-        android:layout_width="123dp"
-        android:layout_height="49dp"
-        android:text="Connect"
+        android:id="@+id/emergency_b"
+        android:layout_width="107dp"
+        android:layout_height="46dp"
+        android:background="@drawable/emergency_button"
+        android:onClick="onButtonPressed"
+        android:text="Emergency"
+        android:textStyle="bold"
         android:visibility="invisible"
-        android:onClick="button_onclick"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.499"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.828" />
+        app:layout_constraintVertical_bias="0.046" />
 
     <TextView
         android:id="@+id/status_text"
@@ -43,20 +34,176 @@
         app:layout_constraintHorizontal_bias="0.054"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/opencvImageView"
-        app:layout_constraintVertical_bias="0.076"
-        tools:visibility="visible" />
+        app:layout_constraintVertical_bias="0.076" />
 
     <Button
-        android:id="@+id/disconnect_b"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Disconnect"
-        android:onClick="disconnect"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/up_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+        android:onClick="onButtonPressed"
+        android:background="@drawable/control_button"
+        android:text="U"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/down_b"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.974"
+        app:layout_constraintHorizontal_bias="0.103"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.082" />
+        app:layout_constraintVertical_bias="0.674" />
+
+    <ImageView
+        android:id="@+id/opencvImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <Button
+        android:id="@+id/forward_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+        android:layout_marginStart="480dp"
+        android:onClick="onButtonPressed"
+        android:layout_marginLeft="480dp"
+        android:background="@drawable/control_button"
+        android:text="F"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toTopOf="@+id/back_b"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.082"
+        app:layout_constraintStart_toEndOf="@+id/up_b"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.674" />
+
+    <Button
+        android:id="@+id/back_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+        android:layout_marginStart="484dp"
+        android:onClick="onButtonPressed"
+        android:layout_marginLeft="484dp"
+        android:layout_marginBottom="108dp"
+        android:background="@drawable/control_button"
+        android:text="B"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/down_b"
+        app:layout_constraintTop_toBottomOf="@+id/connect_s"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/rotate_left_b"
+        android:layout_width="45dp"
+        android:layout_height="44dp"
+        android:background="@drawable/control_button"
+        android:onClick="onButtonPressed"
+        android:text="RL"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/rotate_right_b"
+        app:layout_constraintHorizontal_bias="0.911"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.534" />
+
+    <Button
+        android:id="@+id/rotate_right_b"
+        android:layout_width="46dp"
+        android:layout_height="45dp"
+        android:onClick="onButtonPressed"
+        android:background="@drawable/control_button"
+        android:text="RR"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.953"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.543" />
+
+    <Button
+        android:id="@+id/down_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+
+        android:background="@drawable/control_button"
+        android:text="D"
+        android:onClick="onButtonPressed"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/takeoff_b"
+        app:layout_constraintHorizontal_bias="0.26"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.703" />
+
+    <Button
+        android:id="@+id/right_b"
+        android:layout_width="46dp"
+        android:layout_height="45dp"
+        android:layout_marginEnd="388dp"
+
+        android:layout_marginRight="388dp"
+        android:background="@drawable/control_button"
+        android:text="R"
+        android:onClick="onButtonPressed"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/rotate_left_b"
+        app:layout_constraintHorizontal_bias="0.991"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.543" />
+
+    <Button
+        android:id="@+id/left_b"
+        android:layout_width="45dp"
+        android:layout_height="44dp"
+        android:background="@drawable/control_button"
+
+        android:text="L"
+        android:visibility="invisible"
+        android:onClick="onButtonPressed"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/right_b"
+        app:layout_constraintHorizontal_bias="0.342"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.542" />
+
+    <Button
+        android:id="@+id/takeoff_b"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/takeoff_button"
+        android:text="Take Off"
+        android:onClick="onButtonPressed"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.499"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.955" />
+
+    <Switch
+        android:id="@+id/connect_s"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Online"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.694"
+        app:layout_constraintStart_toEndOf="@+id/emergency_b"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.065" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

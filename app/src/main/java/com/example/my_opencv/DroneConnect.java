@@ -1,14 +1,7 @@
 package com.example.my_opencv;
 
-import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.os.Handler;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import org.opencv.android.Utils;
@@ -39,33 +32,29 @@ public class DroneConnect implements Runnable {
     private DataInputStream input;
     private boolean online;
 
-    //gui
-    private final Context myContext;
-
-
     //gui thread handler
     private final Handler myHandler;
 
     //listener interface
     public interface DroneListener{
 
-        public void onUpdateGUI(Boolean status);
-
         public void onUpdateImageView(Bitmap bmp);
+
+        public void onOnlineStatus(boolean online);
 
     }
 
     private DroneListener listener;
 
     //Constructor
-    public DroneConnect(String ip, int port, Context c)  {
+    public DroneConnect(String ip, int port)  {
 
         online = false;
 
         myHandler = new Handler();
         IP = ip;
         PORT = port;
-        myContext = c;
+
 
         listener = null;
     }
@@ -101,34 +90,30 @@ public class DroneConnect implements Runnable {
             System.out.println(i);
         }
 
+        //update online status to app
+        if(listener != null){
+            listener.onOnlineStatus(online);
+        }
 
         //if online continue to update gui and start communication
         if (online){
 
-            toasted("Connected!");
-            if(listener != null){
-                listener.onUpdateGUI(true);
-            }
 
             communicate();
         }
 
-        //else just display no connection
-        else{
-            toasted("No connection response!");
-        }
 
     }
 
-    private void toasted(String t){
-        myHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText( myContext,t,Toast.LENGTH_SHORT).show();
-            }
-        });
-
-    }
+//    private void toasted(String t){
+//        myHandler.post(new Runnable() {
+//            @Override
+//            public void run() {
+//                Toast.makeText( myContext,t,Toast.LENGTH_SHORT).show();
+//            }
+//        });
+//
+//    }
 
     private void communicate() {
         if (online) {
@@ -192,9 +177,9 @@ public class DroneConnect implements Runnable {
                 socket.close();
                 System.out.println("successfully closed");
 
-                //update image view
+                //tell the app the connection was closed
                 if(listener != null){
-                    listener.onUpdateGUI(false);
+                    listener.onOnlineStatus(false);
                 }
 
             } catch (
