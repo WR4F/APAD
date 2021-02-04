@@ -10,4 +10,5 @@
 2.1: Added archs to lib to create static linking and avoid having to download opencv manager on phone or emulator.
 
 2.2: Added version change log to README.txt
-     Added DroneServer.py to project which is the server script the app communicates with.
+     Added DroneServer.py to project which is the server script the app communicates with
+2.3  Fixed disconnect button that was showing up when it was not supposed to.

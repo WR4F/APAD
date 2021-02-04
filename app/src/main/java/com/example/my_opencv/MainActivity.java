@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity{
 
         //make network class
         try {
-            myConnection = new ConnectionThread(IP, PORT, networkstatus, imagev, connect_b, getApplicationContext(), r.getAbsolutePath());
+            myConnection = new ConnectionThread(IP, PORT, networkstatus, imagev, connect_b, discb, getApplicationContext(), r.getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity{
 
         //start new connection
         new Thread(myConnection).start();
-        discb.setVisibility(View.VISIBLE);
+
 
     }
 

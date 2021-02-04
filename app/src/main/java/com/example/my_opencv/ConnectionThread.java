@@ -23,6 +23,7 @@ import org.opencv.imgproc.Imgproc;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -47,12 +48,12 @@ public class ConnectionThread implements Runnable {
     private final Button connect_b;
     private final Bitmap raulito;
     private final Context myContext;
-
+    private final Button disc;
     //gui thread handler
     private final Handler myHandler;
 
     //Constructor
-    public ConnectionThread(String ip, int port, TextView text, ImageView view, Button b, Context c, String path) throws IOException {
+    public ConnectionThread(String ip, int port, TextView text, ImageView view, Button b, Button d, Context c, String path) throws IOException {
         networkstatus = text;
         imagev = view;
         connect_b = b;
@@ -62,6 +63,7 @@ public class ConnectionThread implements Runnable {
         IP = ip;
         PORT = port;
         myContext = c;
+        disc = d;
 
     }
 
@@ -88,6 +90,7 @@ public class ConnectionThread implements Runnable {
         } catch (IOException i) {
             System.out.println(i);
         }
+
 
         //if online continue to update gui and start communication
         if (online){
@@ -200,6 +203,7 @@ public class ConnectionThread implements Runnable {
                     networkstatus.setText("Online");
                     networkstatus.setTextColor(Color.GREEN);
                     connect_b.setVisibility(View.INVISIBLE);
+                    disc.setVisibility(View.VISIBLE);
                 } else {
                     networkstatus.setText("Offline");
                     networkstatus.setTextColor(Color.RED);
