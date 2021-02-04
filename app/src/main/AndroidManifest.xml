@@ -9,7 +9,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
-        <activity android:name=".ConnectActivity"></activity>
         <!-- Full screen mode -->
         <activity
             android:name=".MainActivity"

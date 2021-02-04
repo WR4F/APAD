@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Handler;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -23,13 +22,11 @@ import org.opencv.imgproc.Imgproc;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
-public class ConnectionThread implements Runnable {
-
+public class DroneConnect implements Runnable {
 
     //network info
     private String IP;
@@ -40,31 +37,42 @@ public class ConnectionThread implements Runnable {
     private Socket socket;
     private DataOutputStream output;
     private DataInputStream input;
-    private static boolean online;
+    private boolean online;
 
     //gui
-    private final ImageView imagev;
-    private final TextView networkstatus;
-    private final Button connect_b;
-    private final Bitmap raulito;
     private final Context myContext;
-    private final Button disc;
+
+
     //gui thread handler
     private final Handler myHandler;
 
+    //listener interface
+    public interface DroneListener{
+
+        public void onUpdateGUI(Boolean status);
+
+        public void onUpdateImageView(Bitmap bmp);
+
+    }
+
+    private DroneListener listener;
+
     //Constructor
-    public ConnectionThread(String ip, int port, TextView text, ImageView view, Button b, Button d, Context c, String path) throws IOException {
-        networkstatus = text;
-        imagev = view;
-        connect_b = b;
+    public DroneConnect(String ip, int port, Context c)  {
+
         online = false;
-        raulito = BitmapFactory.decodeFile(path);
+
         myHandler = new Handler();
         IP = ip;
         PORT = port;
         myContext = c;
-        disc = d;
 
+        listener = null;
+    }
+
+    //listener setter
+    public void setDroneListiner(DroneListener listener){
+        this.listener = listener;
     }
 
     //Runnable function
@@ -72,6 +80,8 @@ public class ConnectionThread implements Runnable {
     public void run() {
 
         connect();
+
+        System.out.println("Drone communication thread finished.");
 
     }
 
@@ -94,8 +104,12 @@ public class ConnectionThread implements Runnable {
 
         //if online continue to update gui and start communication
         if (online){
+
             toasted("Connected!");
-            updateGUI();
+            if(listener != null){
+                listener.onUpdateGUI(true);
+            }
+
             communicate();
         }
 
@@ -110,7 +124,7 @@ public class ConnectionThread implements Runnable {
         myHandler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(myContext,t,Toast.LENGTH_SHORT).show();
+                Toast.makeText( myContext,t,Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -159,7 +173,12 @@ public class ConnectionThread implements Runnable {
 
                     //convert and update image view
                     Bitmap bmp = convertMatToBitMap(myFrame);
-                    updateImageView(bmp);
+
+                    //update image view
+                    if(listener != null){
+                        listener.onUpdateImageView(bmp);
+                    }
+
 
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -173,7 +192,10 @@ public class ConnectionThread implements Runnable {
                 socket.close();
                 System.out.println("successfully closed");
 
-                updateGUI();
+                //update image view
+                if(listener != null){
+                    listener.onUpdateGUI(false);
+                }
 
             } catch (
                     IOException i) {
@@ -182,38 +204,6 @@ public class ConnectionThread implements Runnable {
         }
     }
 
-    //image image view with frames
-    private void updateImageView(Bitmap bmp) {
-
-        myHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                imagev.setImageBitmap(bmp);
-            }
-        });
-
-    }
-
-    //update network status GUI
-    private void updateGUI() {
-        myHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                if (online) {
-                    networkstatus.setText("Online");
-                    networkstatus.setTextColor(Color.GREEN);
-                    connect_b.setVisibility(View.INVISIBLE);
-                    disc.setVisibility(View.VISIBLE);
-                } else {
-                    networkstatus.setText("Offline");
-                    networkstatus.setTextColor(Color.RED);
-                    connect_b.setVisibility(View.VISIBLE);
-                    imagev.setImageBitmap(raulito);
-                }
-            }
-        });
-
-    }
 
     //convert MAT to bmp
     private static Bitmap convertMatToBitMap(Mat input) {
@@ -231,7 +221,7 @@ public class ConnectionThread implements Runnable {
 
     }
 
-    public static void disconnect(){
+    public void disconnect(){
         online = false;
     }
 

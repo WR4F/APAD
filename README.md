@@ -1,6 +1,7 @@
 # Autonomous Personal Assistant Drone
 
-===================APAD-LandScape Version Changes=================
+===================APAD-LandScape Version Changes=================/n
+
 1.0: APAD App that launches in landscape mode. Connects to server to get live camera feed.
 
 2.0: Added ConnectionThread class that implements runnable to enable connect/disconnect to server.
@@ -11,4 +12,6 @@
 
 2.2: Added version change log to README.txt
      Added DroneServer.py to project which is the server script the app communicates with
+
 2.3  Fixed disconnect button that was showing up when it was not supposed to.
+     Renamed ConntionThread to DroneConnect and added a listener interface which allows communication between threads

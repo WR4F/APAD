@@ -1,10 +1,11 @@
 package com.example.my_opencv;
 
 import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.Context;
-import android.content.res.AssetManager;
 import android.graphics.BitmapFactory;
 
+import android.graphics.Color;
 import android.os.Bundle;
 
 import android.graphics.Bitmap;
@@ -14,10 +15,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 
-import java.io.BufferedInputStream;
-
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 
@@ -32,12 +30,17 @@ public class MainActivity extends AppCompatActivity{
     //network info
     private String IP = "10.0.0.41";
     private int PORT = 9999;
-    private ConnectionThread myConnection;
+    private DroneConnect myConnection;
 
     private static final String TAG = "MainActivity";
 
+    //gui
     private Button discb;
-
+    private ImageView imagev;
+    private TextView networkstatus;
+    private Button connect_b;
+    private Bitmap raulito;
+    private AI ai;
     static {
         if (!OpenCVLoader.initDebug()) {
             // Handle initialization error
@@ -73,25 +76,37 @@ public class MainActivity extends AppCompatActivity{
         setContentView(R.layout.activity_main);
 
         //setup gui objects
-        ImageView imagev = (ImageView) findViewById(R.id.opencvImageView);
-        TextView networkstatus = (TextView) findViewById(R.id.status_text);
-        Button connect_b = (Button) findViewById(R.id.connect_b);
+         imagev = (ImageView) findViewById(R.id.opencvImageView);
+         networkstatus = (TextView) findViewById(R.id.status_text);
+         connect_b = (Button) findViewById(R.id.connect_b);
+         discb = (Button) findViewById(R.id.disconnect_b);
+
         connect_b.setVisibility(View.VISIBLE);
-        discb = (Button) findViewById(R.id.disconnect_b);
         discb.setVisibility(View.INVISIBLE);
 
-        //get raulito
+        //get raulito image
         File r = new File(this.getFilesDir(), "raulito.bmp");
-        Bitmap raulito = BitmapFactory.decodeFile(r.getAbsolutePath());
+        raulito = BitmapFactory.decodeFile(r.getAbsolutePath());
         imagev.setImageBitmap(raulito);
 
+        //make network class and listener
+        myConnection = new DroneConnect(IP, PORT, getApplicationContext());
+        myConnection.setDroneListiner(new DroneConnect.DroneListener() {
 
-        //make network class
-        try {
-            myConnection = new ConnectionThread(IP, PORT, networkstatus, imagev, connect_b, discb, getApplicationContext(), r.getAbsolutePath());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            @Override
+            public void onUpdateGUI(Boolean status) {
+                updateGUI(status);
+            }
+
+            @Override
+            public void onUpdateImageView(Bitmap bmp) {
+                updateImageView(bmp);
+            }
+        });
+
+        //AI class
+        //ai = new AI(getApplicationContext());
+        //ai.createDDNNetwork();
 
     }
 
@@ -101,14 +116,46 @@ public class MainActivity extends AppCompatActivity{
         //start new connection
         new Thread(myConnection).start();
 
-
     }
 
     //disconnect button
     public void disconnect(View view) throws IOException {
         //disconnect communication
-        ConnectionThread.disconnect();
+        myConnection.disconnect();
         discb.setVisibility(View.INVISIBLE);
+    }
+
+    //update gui buttons and text based on drone online status
+    public void updateGUI(boolean status){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (status) {
+                    networkstatus.setText("Online");
+                    networkstatus.setTextColor(Color.GREEN);
+                    connect_b.setVisibility(View.INVISIBLE);
+                    discb.setVisibility(View.VISIBLE);
+                } else {
+                    networkstatus.setText("Offline");
+                    networkstatus.setTextColor(Color.RED);
+                    connect_b.setVisibility(View.VISIBLE);
+                    imagev.setImageBitmap(raulito);
+                }
+
+            }
+        });
+
+    }
+
+    //function to update image view with latest video feed
+    public void updateImageView( Bitmap bmp){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                imagev.setImageBitmap(bmp);
+            }
+        });
+
     }
 
 }
