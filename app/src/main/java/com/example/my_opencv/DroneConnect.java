@@ -2,13 +2,11 @@ package com.example.my_opencv;
 
 import android.graphics.Bitmap;
 import android.os.Handler;
-import android.widget.Toast;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvException;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
-import org.opencv.dnn.Net;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -22,56 +20,48 @@ import java.nio.ByteBuffer;
 public class DroneConnect implements Runnable {
 
     //network info
-    private String IP;
-    private int PORT;
+    private final String IP;
+    private final int PORT;
 
     //sockets
-    private Net net;
-    private Socket socket;
-    private DataOutputStream output;
-    private DataInputStream input;
-    private boolean online;
+    protected Socket socket;
+    protected DataInputStream input;
+    protected DataOutputStream output;
+    protected boolean online;
 
-    //gui thread handler
-    private final Handler myHandler;
+    protected DroneListener listener;
+    protected MainActivity main;
+    protected int button;
 
-    //listener interface
-    public interface DroneListener{
-
-        public void onUpdateImageView(Bitmap bmp);
-
-        public void onOnlineStatus(boolean online);
-
-    }
-
-    private DroneListener listener;
-
-    //Constructor
-    public DroneConnect(String ip, int port)  {
-
-        online = false;
-
-        myHandler = new Handler();
-        IP = ip;
-        PORT = port;
-
-
+    public DroneConnect(String IP, int PORT, MainActivity main) {
+        this.IP = IP;
+        this.PORT = PORT;
+        this.main = main;
         listener = null;
+        button = 0;
+
+        main.setAppListener(new AppListener() {
+            @Override
+            public void onNavButtonPress(int type) {
+                button = type;
+            }
+
+            @Override
+            public void onDisconnectDrone() {
+                online = false;
+            }
+        });
     }
 
     //listener setter
-    public void setDroneListiner(DroneListener listener){
+    public void setDroneListener(DroneListener listener) {
         this.listener = listener;
     }
 
-    //Runnable function
+
     @Override
     public void run() {
-
         connect();
-
-        System.out.println("Drone communication thread finished.");
-
     }
 
     //try to establish a connection
@@ -80,71 +70,117 @@ public class DroneConnect implements Runnable {
         try {
             socket = new Socket(IP, PORT);
             System.out.println("Connected to " + socket.toString());
-            online = true;
 
+            online = true;
             input = new DataInputStream(socket.getInputStream());
+            output = new DataOutputStream(socket.getOutputStream());
 
         } catch (UnknownHostException u) {
             System.out.println(u);
+            online = false;
         } catch (IOException i) {
+            online = false;
             System.out.println(i);
+            System.out.println("Failed to connect video comms.");
         }
 
         //update online status to app
-        if(listener != null){
+        if (listener != null) {
             listener.onOnlineStatus(online);
         }
 
         //if online continue to update gui and start communication
-        if (online){
+        if (online) {
 
+            if (PORT == 9999) {
+                video_comms();
+            } else {
+                nav_comms();
+            }
 
-            communicate();
+        } else {
+
+            System.out.println("Failed to connect video comms.");
+        }
+    }
+
+    protected void nav_comms() {
+        String string;
+
+        System.out.println("Established nav comms.");
+
+        try {
+            while (online) {
+
+                //send button as string
+                output.writeUTF(Integer.toString(button));
+
+                //reset button back to 0
+                button = 0;
+
+                //read reply
+                string = input.readUTF();
+
+                //show reply if its not 0
+                if (!string.equals("0")) {
+                    System.out.println("Nav reply: " + string);
+                }
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+
         }
 
+        if (listener != null) {
+            listener.onOnlineStatus(false);
+        }
+
+        try {
+
+            input.close();
+            output.close();
+            socket.close();
+            System.out.println("successfully closed nav socket");
+
+        } catch (
+                IOException i) {
+            System.out.println(i);
+        }
 
     }
 
-//    private void toasted(String t){
-//        myHandler.post(new Runnable() {
-//            @Override
-//            public void run() {
-//                Toast.makeText( myContext,t,Toast.LENGTH_SHORT).show();
-//            }
-//        });
-//
-//    }
+    protected void video_comms() {
 
-    private void communicate() {
-        if (online) {
+        System.out.println("Established video comms.");
 
-            Mat myFrame = new Mat();
-            byte[] fr;
-            int bytesToRead;
-            Mat fanalyze;
-            byte[] size_buff;
+        new Mat();
+        Mat myFrame;       //frame converted from bytes
+        byte[] fr;         //frame in bytes
+        int bytesToRead;   //size of packet
+        byte[] size_buff;  //size of packet in bytes
 
-            //ByteBuffer byteBuffer;
-            // keep reading until "Over" is input
+        while (online) {
+            try {
 
-            while (online) {
-                try {
+                // Get size of packet
+                size_buff = new byte[4];
+                input.read(size_buff);
+                bytesToRead = ByteBuffer.wrap(size_buff).asIntBuffer().get();
 
-                    // Get size of packet
-                    size_buff = new byte[4];
-                    input.read(size_buff);
-                    bytesToRead = ByteBuffer.wrap(size_buff).asIntBuffer().get();
+                if (bytesToRead > 0) {
 
                     //byte frame
                     fr = new byte[bytesToRead];
 
                     //get whole frame x bytes at a time
-//                    while(true){
-//                        bytesRead += input.read(fr);
-//                        if(bytesRead >= bytesToRead){
-//                            break;
-//                        }
-//                    }
+                    //                    while(true){
+                    //                        bytesRead += input.read(fr);
+                    //                        if(bytesRead >= bytesToRead){
+                    //                            break;
+                    //                        }
+                    //                    }
 
                     //get frame
                     input.readFully(fr);
@@ -153,42 +189,47 @@ public class DroneConnect implements Runnable {
                     myFrame = Imgcodecs.imdecode(new MatOfByte(fr), Imgcodecs.IMREAD_COLOR);
 
                     //show packet info
-                    String info = ", w:" + myFrame.width() + ", h: " + myFrame.height();
-                    System.out.println("Packet: " + fr + ", packet size: " + bytesToRead + info);
+                    // String info = ", w:" + myFrame.width() + ", h: " + myFrame.height();
+                    //System.out.println("Packet: " + fr + ", packet size: " + bytesToRead + info);
 
                     //convert and update image view
                     Bitmap bmp = convertMatToBitMap(myFrame);
 
                     //update image view
-                    if(listener != null){
+                    if (listener != null) {
                         listener.onUpdateImageView(bmp);
                     }
 
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            try {
-                // out.writeUTF("Goodbye!");
-                input.close();
-                // out.close();
-                socket.close();
-                System.out.println("successfully closed");
-
-                //tell the app the connection was closed
-                if(listener != null){
-                    listener.onOnlineStatus(false);
+                } else {
+                    fr = new byte[1];
+                    //get frame
+                    input.readFully(fr);
                 }
 
-            } catch (
-                    IOException i) {
-                System.out.println(i);
+
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
         }
-    }
 
+        if (listener != null) {
+            listener.onOnlineStatus(false);
+        }
+
+        try {
+
+            input.close();
+            output.close();
+            socket.close();
+            System.out.println("successfully closed video socket");
+
+        } catch (
+                IOException i) {
+            System.out.println(i);
+        }
+
+    }
 
     //convert MAT to bmp
     private static Bitmap convertMatToBitMap(Mat input) {
@@ -206,8 +247,9 @@ public class DroneConnect implements Runnable {
 
     }
 
-    public void disconnect(){
+    public void disconnect() {
         online = false;
+
     }
 
 }

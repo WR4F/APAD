@@ -1,27 +1,36 @@
-import socket, cv2, pickle,struct, imutils, pickle
+import socket, cv2, jpysocket
 
 # import thread module 
 from threading import Thread
 
+#=================Drone Server Version 3==================================
+#dependencies: opencv (cv2), jpysocket
+
 host_ip = '10.0.0.41'
-port = 9999
-socket_address = (host_ip,port)
+vport = 9999
+nport = 9998
+video_address = (host_ip, vport)
+nav_address = (host_ip, nport)
 
-# Socket Create
-server_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-#host_name  = socket.gethostname()
+# video socket create
+video_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+video_socket.bind(video_address)
 
-server_socket.bind(socket_address)
+#nav socket create
+nav_socket = jpysocket.jpysocket()
+nav_socket.bind(nav_address)
 
+#setup camera
 vid = cv2.VideoCapture(0)
 
 #change resolution, only supports native resolutions of camera 
 vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-#threaded connections
-def connect(c, v):
+#threaded video connection
+def video_connect(c, v):
 
+    print("Video connection established.")
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
         
     with c:
@@ -52,20 +61,40 @@ def connect(c, v):
             # if key ==ord('q'):
             #client_socket.close()
 
+#threaded nav connection
+def nav_connect(c):
 
-# Socket Listen
-server_socket.listen()
-print("LISTENING AT:",socket_address)
+    print("Navigation connection established.")
 
-# Server loop
+    with c:
+
+        while True:
+            data = c.recv(1024)
+            data = jpysocket.jpydecode(data)
+            
+            if data != "0":
+                print(data)
+            
+            send = jpysocket.jpyencode(data)
+
+            c.send(send)
+
+
+#listen for incoming connections
+video_socket.listen()
+nav_socket.listen()
+
+print("Listening for incoming connections.")
+
 while True:
-    #wait for connection
-    client_socket,addr = server_socket.accept()
-        
-    #start connection thread
-    new_thread = Thread(target = connect, args = (client_socket, vid))
-    new_thread.start()
-        
-        
-server_socket.close()
-cam.release()
+    #wait
+    vid_client, vid_addr = video_socket.accept()
+    nav_client, nav_addr = nav_socket.accept()
+
+    #create threaded connections
+    new_threads = [Thread(target=video_connect, args=(vid_client, vid)), Thread(target= nav_connect, args=(nav_client,))]
+
+    #launch
+    for th in new_threads:
+        th.start()
+    

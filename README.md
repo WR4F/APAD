@@ -23,3 +23,9 @@
      Replaced connect and disconnect button with an online switch slider to connect to drone server.
      Added an onClick method to handle all the navigation buttons.
 
+2.5 Added a DroneListener interface for all thread communication from drone(DroneConnect) to app(main).
+    Added a AppListener interface for all thread communication from app(main) to drone(DroneConnect).
+    Added a DroneConnect class that handles both drone video and drone navigation sockets.
+    Updated server to v3 to run two sockets for video and navigation.
+    Fix: Image view will only update if the received video packet is greater than one byte to prevent app from crashing when it tries to convert it to a bitmap.
+    Bug: onDisconnect listener in AppListener does work for droneNav but not for droneVideo for some reason, so using their disconnect methods instead.

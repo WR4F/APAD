@@ -20,7 +20,6 @@ import java.io.File;
 
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -29,11 +28,8 @@ import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
-    //network info
-    private String IP = "10.0.0.41";
-    private int PORT = 9999;
-    private DroneConnect myConnection;
-
+    private DroneConnect droneVideo;
+    private DroneConnect droneNav;
     private static final String TAG = "MainActivity";
 
     //gui
@@ -42,7 +38,10 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imagev;
     private TextView networkstatus;
     private Bitmap raulito;
-    private AI ai;
+
+    //private AI ai;
+
+    private AppListener appListener;
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -54,19 +53,19 @@ public class MainActivity extends AppCompatActivity {
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
         public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS: {
-                    Log.i(TAG, "OpenCV loaded successfully");
-                    //mOpenCvCameraView.enableView();
-                    break;
-                }
-                default: {
-                    super.onManagerConnected(status);
-                    break;
-                }
+            if (status == LoaderCallbackInterface.SUCCESS) {
+                Log.i(TAG, "OpenCV loaded successfully");
+                //mOpenCvCameraView.enableView();
+            } else {
+                super.onManagerConnected(status);
             }
         }
     };
+
+    //listener setter
+    public void setAppListener(AppListener listener) {
+        this.appListener = listener;
+    }
 
 
     @Override
@@ -79,39 +78,30 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //setup image view and text
-        imagev = (ImageView) findViewById(R.id.opencvImageView);
-        networkstatus = (TextView) findViewById(R.id.status_text);
-
-        //setup switch button and listener
-        connect = (Switch) findViewById(R.id.connect_s);
-        connect.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    new Thread(myConnection).start();
-                    System.out.println("Started new thread");
-                } else {
-                    myConnection.disconnect();
-                    System.out.println("disconnected");
-                }
-            }
-        });
+        imagev = findViewById(R.id.opencvImageView);
+        networkstatus = findViewById(R.id.status_text);
 
         //setup buttons
         //land, emergency, up, down, left, right, forward, backward, rot left, rot right
-        buttons = new Button[]{(Button) findViewById(R.id.takeoff_b), (Button) findViewById(R.id.emergency_b),
-                (Button) findViewById(R.id.up_b), (Button) findViewById(R.id.down_b), (Button) findViewById(R.id.left_b),
-                (Button) findViewById(R.id.right_b), (Button) findViewById(R.id.forward_b), (Button) findViewById(R.id.back_b),
-                (Button) findViewById(R.id.rotate_left_b), (Button) findViewById(R.id.rotate_right_b)};
+        buttons = new Button[]{findViewById(R.id.takeoff_b), findViewById(R.id.emergency_b),
+                findViewById(R.id.up_b), findViewById(R.id.down_b), findViewById(R.id.left_b),
+                findViewById(R.id.right_b), findViewById(R.id.forward_b), findViewById(R.id.back_b),
+                findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b)};
 
         //get raulito image
         File r = new File(this.getFilesDir(), "raulito.bmp");
         raulito = BitmapFactory.decodeFile(r.getAbsolutePath());
         imagev.setImageBitmap(raulito);
 
-        //make network class and listener
-        myConnection = new DroneConnect(IP, PORT);
-        myConnection.setDroneListiner(new DroneConnect.DroneListener() {
+        //IP
+        String IP = "10.0.0.41";
+
+        appListener = null;
+
+        //make drone video class and listener
+        int V_PORT = 9999;
+        droneVideo = new DroneConnect(IP, V_PORT, MainActivity.this);
+        droneVideo.setDroneListener(new DroneListener() {
 
             @Override
             public void onUpdateImageView(Bitmap bmp) {
@@ -119,68 +109,98 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onOnlineStatus(boolean online){
+            public void onOnlineStatus(boolean online) {
                 updateGUI(online);
             }
+
+            @Override
+            public void onDroneUpdate() {
+
+            }
+
         });
 
-        //AI class
-        //ai = new AI(getApplicationContext());
-        //ai.createDDNNetwork();
-    }
+        //make drone nav and listener
+        int NAV_PORT = 9998;
+        droneNav = new DroneConnect(IP, NAV_PORT, MainActivity.this);
+        droneNav.setDroneListener(new DroneListener() {
+            @Override
+            public void onUpdateImageView(Bitmap bmp) {
 
+            }
+
+            @Override
+            public void onOnlineStatus(boolean online) {
+                updateGUI(online);
+            }
+
+
+            @Override
+            public void onDroneUpdate() {
+
+            }
+
+        });
+
+        //setup switch button and listener
+        connect = findViewById(R.id.connect_s);
+        connect.setOnCheckedChangeListener((buttonView, isChecked) -> {
+
+            if (isChecked) {
+                new Thread(droneVideo).start();
+                new Thread(droneNav).start();
+
+            } else {
+                droneVideo.disconnect();
+                droneNav.disconnect();
+                //appListener.onDisconnectDrone();
+            }
+        });
+    }
 
     //update gui buttons and text based on drone online status
     public void updateGUI(boolean status) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
+        runOnUiThread(() -> {
 
-                connect.setChecked(status);
+            connect.setChecked(status);
 
-                if (status) {
+            if (status) {
 
-                    //toast
-                    Toast.makeText( getApplicationContext(),"Connected!",Toast.LENGTH_SHORT).show();
+                //toast
+                Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
 
-                    //update status text to online and green
-                    networkstatus.setText("Online");
-                    networkstatus.setTextColor(Color.GREEN);
+                //update status text to online and green
+                networkstatus.setText("Online");
+                networkstatus.setTextColor(Color.GREEN);
 
-                    //show buttons
-                    for (Button button : buttons) {
-                        button.setVisibility(View.VISIBLE);
-                    }
-
-                } else {
-                    //toast
-                    Toast.makeText( getApplicationContext(),"No Connection!",Toast.LENGTH_SHORT).show();
-
-                    //hide buttons
-                    for (Button button : buttons) {
-                        button.setVisibility(View.INVISIBLE);
-                    }
-
-                    //update status text to offline and red
-                    imagev.setImageBitmap(raulito);
-                    networkstatus.setText("Offline");
-                    networkstatus.setTextColor(Color.RED);
-
+                //show buttons
+                for (Button button : buttons) {
+                    button.setVisibility(View.VISIBLE);
                 }
 
+            } else {
+                //toast
+                Toast.makeText(getApplicationContext(), "Offline!", Toast.LENGTH_SHORT).show();
+
+                //hide buttons
+                for (Button button : buttons) {
+                    button.setVisibility(View.INVISIBLE);
+                }
+
+                //update status text to offline and red
+                imagev.setImageBitmap(raulito);
+                networkstatus.setText("Offline");
+                networkstatus.setTextColor(Color.RED);
+
             }
+
         });
 
     }
 
     //function to update image view with latest video feed
     public void updateImageView(Bitmap bmp) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                imagev.setImageBitmap(bmp);
-            }
-        });
+        runOnUiThread(() -> imagev.setImageBitmap(bmp));
 
     }
 
@@ -188,11 +208,17 @@ public class MainActivity extends AppCompatActivity {
     public void onButtonPressed(View view) {
         //land/takeoff, emergency, up, down, left, right, forward, backward, rot left, rot right
         //1-10
-        int type = 0;
+        int type;
 
-        for(int x = 0; x < buttons.length ; x++){
-            if(view.getId() == buttons[x].getId()){
-                type = x + 1 ;
+        for (int x = 0; x < buttons.length; x++) {
+
+            if (view.getId() == buttons[x].getId()) {
+                type = x + 1;
+                //update online status to app
+                if (appListener != null) {
+                    appListener.onNavButtonPress(type);
+                }
+                break;
             }
         }
     }
