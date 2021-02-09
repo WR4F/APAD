@@ -4,4 +4,6 @@ public interface AppListener {
     void onNavButtonPress(int type);
 
     void onDisconnectDrone();
+
+    void onUpdateDrone(int [] data);
 }

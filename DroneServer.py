@@ -1,100 +1,136 @@
-import socket, cv2, jpysocket
+import socket, cv2, sys, logging
+from Drone import Drone
 
 # import thread module 
 from threading import Thread
 
-#=================Drone Server Version 3==================================
-#dependencies: opencv (cv2), jpysocket
+#=================Drone Server Version 4==================================
 
+#logging
+logging.basicConfig(level=logging.NOTSET)
+log = logging.getLogger("Server")
+
+#socket info
 host_ip = '10.0.0.41'
 vport = 9999
 nport = 9998
 video_address = (host_ip, vport)
 nav_address = (host_ip, nport)
 
-# video socket create
-video_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-video_socket.bind(video_address)
+#attempt to bind sockets
+try:
+    # video socket create
+    video_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    video_socket.bind(video_address)
 
-#nav socket create
-nav_socket = jpysocket.jpysocket()
-nav_socket.bind(nav_address)
+    #nav socket create
+    nav_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    nav_socket.bind(nav_address)
 
-#setup camera
-vid = cv2.VideoCapture(0)
+except socket.error as e:
+    log.debug("Failed to bind sockets: " + str(e))
+    sys.exit()
 
-#change resolution, only supports native resolutions of camera 
-vid.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+#drone class
+drone = Drone()
 
 #threaded video connection
-def video_connect(c, v):
-
-    print("Video connection established.")
+def video_connect():
+    
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+    
+    while True:
+        c, vid_addr = video_socket.accept()
+    
+        log.info("Video connection established.")
         
-    with c:
-        
-        while True:
-            #read frame
-            img,frame = v.read()
-            
-            #resize and encode to jpg
-            #frame = imutils.resize(frame, width=320)
-            result, frame = cv2.imencode('.jpg', frame, encode_param)
+        with c:
+            while True:
 
-            #convert to bytes and get size
-            data = bytes(frame)    
-            size = len(data)
-            
-            #send size of frame in big indian byte order
-            c.sendall(size.to_bytes(4, byteorder='big'))
-            
-            #send frame
-            c.sendall(frame)
+                try:
+                    #read frame
+                    img,frame = drone.getFrame()
+                
+                    #resize and encode to jpg
+                    #frame = imutils.resize(frame, width=320)
+                    result, frame = cv2.imencode('.jpg', frame, encode_param)
 
-            print("sent: " + str(size) + " bytes")
+                    #convert to bytes and get size
+                    data = bytes(frame)    
+                    size = len(data)
+                
+                    #send size of frame in big indian byte order
+                    c.sendall(size.to_bytes(4, byteorder='big'))
+                
+                    #send frame
+                    c.sendall(frame)
 
-            # print("sent ", frame) 
-            # cv2.imshow('TRANSMITTING VIDEO',frame)
-            # key = cv2.waitKey(1) & 0xFF
-            # if key ==ord('q'):
-            #client_socket.close()
+                    #print("sent: " + str(size) + " bytes")
+
+                except socket.error as e:
+                    log.debug("Error at video comms: " + str(e))
+                    break
 
 #threaded nav connection
-def nav_connect(c):
+def nav_connect():
+    
+    
+    while True:
+        c, nav_addr = nav_socket.accept()
+        
+        log.info("Navigation connection established.")
 
-    print("Navigation connection established.")
+        recv = [0,0,0,0,0]
 
-    with c:
-
-        while True:
-            data = c.recv(1024)
-            data = jpysocket.jpydecode(data)
+        with c:
             
-            if data != "0":
-                print(data)
-            
-            send = jpysocket.jpyencode(data)
+            while True:
+                try:
 
-            c.send(send)
+                    #get latest data
+                    send = drone.getDroneData()
+                    #send = [0,0,0,0,0]
+
+                    #log.info("passed getDroneData")
+
+                    #get data from app
+                    for x in range(0,len(recv)):
+
+                        #recive bytes
+                        data = c.recv(4096)
+
+                        #conver from binary to int and place in recv list
+                        integer = int.from_bytes(bytes=data, byteorder='big')
+                        recv[x]= integer        
+        
+                        c.sendall(send[x].to_bytes(4, byteorder='big'))
+                    
+                    #log.info("recieved:" + str(recv))
+                    
+                    #log.info("sent:" + str(send))
+                    
+                    #send app data to drone    
+                    drone.sendAppData(recv)
+                
+                    #log.info("passed send data to app")
+            
+                except socket.error as e:
+                    log.debug("Error at nav comm: " + str(e))
+                    break
+                
 
 
 #listen for incoming connections
 video_socket.listen()
 nav_socket.listen()
 
-print("Listening for incoming connections.")
+log.info("Listening for incoming connections.")
+    
+    
+#create threaded connections
+new_threads = [Thread(target=video_connect), Thread(target= nav_connect)]
 
-while True:
-    #wait
-    vid_client, vid_addr = video_socket.accept()
-    nav_client, nav_addr = nav_socket.accept()
-
-    #create threaded connections
-    new_threads = [Thread(target=video_connect, args=(vid_client, vid)), Thread(target= nav_connect, args=(nav_client,))]
-
-    #launch
-    for th in new_threads:
-        th.start()
+#launch
+for th in new_threads:
+    th.start()
     

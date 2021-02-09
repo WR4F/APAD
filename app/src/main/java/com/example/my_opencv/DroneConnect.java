@@ -1,7 +1,6 @@
 package com.example.my_opencv;
 
 import android.graphics.Bitmap;
-import android.os.Handler;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvException;
@@ -29,6 +28,8 @@ public class DroneConnect implements Runnable {
     protected DataOutputStream output;
     protected boolean online;
 
+    protected int[] dataToDrone;
+    protected int[] dataFromDrone;
     protected DroneListener listener;
     protected MainActivity main;
     protected int button;
@@ -39,6 +40,8 @@ public class DroneConnect implements Runnable {
         this.main = main;
         listener = null;
         button = 0;
+        dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode
+        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
 
         main.setAppListener(new AppListener() {
             @Override
@@ -49,6 +52,14 @@ public class DroneConnect implements Runnable {
             @Override
             public void onDisconnectDrone() {
                 online = false;
+            }
+
+            @Override
+            public void onUpdateDrone(int[] data) {
+
+                dataToDrone[0] = button;   //button
+                dataToDrone[1] = data[0];  //flight mode
+                dataToDrone[2] = data[1];  //velocity
             }
         });
     }
@@ -76,17 +87,11 @@ public class DroneConnect implements Runnable {
             output = new DataOutputStream(socket.getOutputStream());
 
         } catch (UnknownHostException u) {
-            System.out.println(u);
+            u.printStackTrace();
             online = false;
         } catch (IOException i) {
             online = false;
-            System.out.println(i);
-            System.out.println("Failed to connect video comms.");
-        }
-
-        //update online status to app
-        if (listener != null) {
-            listener.onOnlineStatus(online);
+            i.printStackTrace();
         }
 
         //if online continue to update gui and start communication
@@ -94,7 +99,14 @@ public class DroneConnect implements Runnable {
 
             if (PORT == 9999) {
                 video_comms();
+
             } else {
+
+                //update online status to app
+                if (listener != null) {
+                    listener.onOnlineStatus(true);
+                }
+
                 nav_comms();
             }
 
@@ -105,33 +117,62 @@ public class DroneConnect implements Runnable {
     }
 
     protected void nav_comms() {
-        String string;
 
         System.out.println("Established nav comms.");
 
-        try {
-            while (online) {
+        //String reply = "";
 
-                //send button as string
-                output.writeUTF(Integer.toString(button));
+        int intData; // int
+        byte[] intDataBytes; // int in bytes
 
-                //reset button back to 0
-                button = 0;
+        while (online) {
 
-                //read reply
-                string = input.readUTF();
+            try {
 
-                //show reply if its not 0
-                if (!string.equals("0")) {
-                    System.out.println("Nav reply: " + string);
+                //get latest data from app
+                if (listener != null) {
+                    listener.onGetAppData();
                 }
 
+                //System.out.printf("sent: %s %s %s", dataToDrone[0], dataToDrone[1], dataToDrone[2]);
+
+                //get drone info
+                for (int x = 0; x < dataFromDrone.length; x++) {
+
+                    //send app info
+                    output.write(dataToDrone[x]);
+
+                    //get 4 new bytes from drone and convert to int
+                    intDataBytes = new byte[4];
+                    input.read(intDataBytes);
+                    intData = ByteBuffer.wrap(intDataBytes).asIntBuffer().get();
+
+                    //update drone info
+                    dataFromDrone[x] = intData;
+
+                   // reply += String.valueOf(intData);
+
+                }
+
+                //System.out.printf("Received: %s", reply);
+                //reply = "";
+
+                //set latest data from drone to app
+                if (listener != null) {
+                    listener.onSetAppData(dataFromDrone);
+                }
+
+                //print button
+                if (dataToDrone[0] != 0) {
+                    System.out.println("Nav reply: " + dataToDrone[0]);
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                online = false;
             }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-
         }
+
 
         if (listener != null) {
             listener.onOnlineStatus(false);
@@ -146,7 +187,7 @@ public class DroneConnect implements Runnable {
 
         } catch (
                 IOException i) {
-            System.out.println(i);
+            i.printStackTrace();
         }
 
     }
@@ -226,7 +267,7 @@ public class DroneConnect implements Runnable {
 
         } catch (
                 IOException i) {
-            System.out.println(i);
+            i.printStackTrace();
         }
 
     }
@@ -241,6 +282,7 @@ public class DroneConnect implements Runnable {
             bmp = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888);
             Utils.matToBitmap(rgb, bmp);
         } catch (CvException e) {
+            e.printStackTrace();
             System.out.println("failed to convert mat to bmp");
         }
         return bmp;

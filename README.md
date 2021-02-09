@@ -29,3 +29,14 @@
     Updated server to v3 to run two sockets for video and navigation.
     Fix: Image view will only update if the received video packet is greater than one byte to prevent app from crashing when it tries to convert it to a bitmap.
     Bug: onDisconnect listener in AppListener does work for droneNav but not for droneVideo for some reason, so using their disconnect methods instead.
+
+2.6 Found a way to send/get ints through sockets.
+    Updated drone server script to version 4 for sending/receiving navigation data.
+    Added listeners for getting and setting drone info.
+    Added an Excel sheet for the drone documentation and manual, which will change as the project updates.
+    Added mic button, follow me switch, settings button, switch camera button, and battery progress bar with % text.
+    Added a Drone.py that will represent the drone class to handle all drone activities. Drone server will use it directly.
+    Needs Debugging but the video works and both sockets close correctly.
+
+
+
