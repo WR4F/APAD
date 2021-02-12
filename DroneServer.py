@@ -87,13 +87,12 @@ def nav_connect():
             while True:
                 try:
 
-                    #get latest data
+                    #get latest data from drone
                     send = drone.getDroneData()
-                    #send = [0,0,0,0,0]
 
                     #log.info("passed getDroneData")
 
-                    #get data from app
+                    #recieve -> send
                     for x in range(0,len(recv)):
 
                         #recive bytes
@@ -102,7 +101,8 @@ def nav_connect():
                         #conver from binary to int and place in recv list
                         integer = int.from_bytes(bytes=data, byteorder='big')
                         recv[x]= integer        
-        
+
+                        #send drone data to app
                         c.sendall(send[x].to_bytes(4, byteorder='big'))
                     
                     #log.info("recieved:" + str(recv))
@@ -117,8 +117,9 @@ def nav_connect():
                 except socket.error as e:
                     log.debug("Error at nav comm: " + str(e))
                     break
+        
+        drone.resetDrone()
                 
-
 
 #listen for incoming connections
 video_socket.listen()

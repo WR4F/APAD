@@ -8,7 +8,7 @@ public interface DroneListener {
 
     void onOnlineStatus(boolean online);
 
-    void onSetAppData(int [] array);
+    void onSetAppData(int [] data);
 
     void onGetAppData();
 

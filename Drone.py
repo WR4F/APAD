@@ -1,285 +1,285 @@
-import time, cv2, sys, logging
+import time
+import cv2
+import sys
+import logging
+
 
 class Drone:
 
     def __init__(self):
 
         logging.basicConfig(level=logging.INFO)
-        self.log = logging.getLogger("Drone")
-        
-        #protcol lists
-        self.droneInfo = [0,0,0,0,0]
-        #self.appInfo = [0,0,0]
+        self.droneLog = logging.getLogger("Drone")
+        self.appLog = logging.getLogger("App")
 
-        #drone protocol variables
-        self.status = 0      #offline, check, ready, manaul, follow me, trail, top
+        # drone protocol variables
+        self.status = 0  # offline, check, ready, flying, land, error
         self.velocity = 3
         self.battery = 100
         self.altitude = 0
         self.errorCode = 0
+        self.flyMode = 3
 
-        #drone camera and flying variables
+        # drone camera and flying variable
         self.camera = cv2.VideoCapture(0)
         self.frontCamera = True
-        self.flyMode = 3
         self.flying = False
 
-        #drone coords
+        # drone coords
         self.x = 0
         self.y = 0
         self.z = 0
-        self.orientation = 90 # drones default at a 90 degree angle facing foward
-        self.coords = []
-
-        self.updateCoords()
+        self.orientation = self.getOrientation()
 
         # Check Camera status
         ok, frame = self.camera.read()
         if not ok:
-            self.log.info('Camera not working')
-            
-        #Check Drone
-        self.checkDrone()
-        
-        self.updateInfo()
+            self.droneLog.info('Camera not working')
 
-    #get latest info from app
+        # Check Drone
+        self.checkDrone()
+
+    # get latest info from app
     def sendAppData(self, update):
 
-        #handle button pressed
+        # handle new flight mode
+        if self.flyMode != update[1]:
+            self.flyMode = update[1]
+            self.updateFlightMode()
+
+        #self.appLog.info(str(update))
+
+        # handle button pressed
         self.handleButton(update[0])
 
-
-    #send latest drone info to app
+    # send latest drone info to app
     def getDroneData(self):
 
-        #update info
+        # update info
         self.battery = self.getBattery()
         self.altitude = self.getAltitude()
-        self.updateInfo()
 
-        return self.droneInfo
+        return self.updateInfo()
 
-    #Handle button logic
+    # Handle button logic
     def handleButton(self, button):
+
         if self.status != 8:
-            
-            #launch/land
+
+            # launch/land
             if button == 1:
 
-                #launch
+                # launch
                 if not self.flying:
                     self.launch()
-                
-                #land
+
+                # land
                 else:
 
-                    #land and check drone 
+                    # land and check drone
                     self.land()
 
-            #emergency land
+            # emergency land
             elif button == 2 and self.flying:
-                    self.emergencyLand()
-            
-            #move drone according to button
-            elif button >= 3 and button <= 10:
+                self.emergencyLand()
+
+            # move drone according to button
+            elif button >= 3 and button <= 10 and self.flying:
                 self.moveDrone(button)
-            
-            #switch cameras
+
+            # switch cameras
             elif button == 11:
                 self.switchCamera()
-            
-            #land at base
-            else:
+          
+            elif self.flying and button ==12:
                 self.landAtBase()
 
-    #Move drone logic
+    # Move drone logic
     def moveDrone(self, move):
 
-        #code to move drone goes here
-        if self.flying:
+        # code to move drone goes here
+
+        if move == 3:
+            self.droneLog.info(f"Moving {self.velocity} up.")
+            # self.altitude += self.velocity
+            self.y += self.velocity
+
+        elif move == 4 and not self.y <= 0:
+            self.droneLog.info(f"Moving {self.velocity} down.")
+            # self.altitude -= self.velocity
+            self.y -= self.velocity
+
+        elif move == 5:
+            self.droneLog.info(f"Moving {self.velocity} left.")
+            self.x += self.velocity
+
+        elif move == 6:
+            self.droneLog.info(f"Moving {self.velocity} right.")
+            self.x -= self.velocity
+
+        elif move == 7:
+            self.droneLog.info(f"Moving {self.velocity} foward.")
+            self.z += self.velocity
+
+        elif move == 8:
+            self.droneLog.info(f"Moving {self.velocity} backwards.")
+            self.z -= self.velocity
+
+        elif move == 9:
+            self.droneLog.info(f"Rotating {self.velocity} left.")
+            self.orientation += self.velocity
+
+        elif move == 10:
+            self.droneLog.info(f"Rotating {self.velocity} right.")
+            self.orientation -= self.velocity
+
+        self.battery -= 1
+
+        # get latest coords and print
+        self.droneLog.info(str(self.getCoords()))
+
+        #return True
         
-            if move == 3:
-                self.log.info(f"Moving {self.velocity} up.")
-                #self.altitude += self.velocity
-                self.y += self.velocity
-
-            elif move == 4:
-                self.log.info(f"Moving {self.velocity} down.")
-                if not self.y <= 0:
-                    #self.altitude -= self.velocity
-                    self.y -= self.velocity
-
-            elif move == 5:
-                self.log.info(f"Moving {self.velocity} left.")
-                self.x += self.velocity
-
-            elif move == 6:
-                self.log.info(f"Moving {self.velocity} right.")
-                self.x -= self.velocity
-
-            elif move == 7:
-                self.log.info(f"Moving {self.velocity} foward.")
-                self.z += self.velocity
-
-            elif move == 8:
-                self.log.info(f"Moving {self.velocity} backwards.")
-                self.z -= self.velocity
-
-            elif move == 9:
-                self.log.info(f"Rotating {self.velocity} left.")
-                self.orientation += self.velocity
-
-            elif move == 10:
-                self.log.info(f"Rotating {self.velocity} right.")
-                self.y -= self.velocity
-            
-            self.battery -= 1
-
-            #update latest coords and print
-            self.updateCoords()
-            self.log.info(str(self.coords))
-            
-            return True
-        return False
-        
-    #get frame from camera
+    # get frame from camera
     def getFrame(self):
         return self.camera.read()
         
-    #change resolution, only supports native resolutions of camera 
+    # change resolution, only supports native resolutions of camera 
     def changeCameraResolution(self, res):
-        self.log.info("Camera resolution changed to" + str(res))   
+        self.droneLog.info("Camera resolution changed to" + str(res))   
         self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, res[0])
         self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, res[1])
 
-    #launch drone
+    # launch drone
     def launch(self):
-        self.log.info("Launching!")
-        #code to launch goes here
 
-        #code to fly manaul goes here
+        self.droneLog.info("Launching!")
+        # code to launch goes here
+
+        # code to fly manaul goes here
         if self.flyMode == 3:
             string = "todo"
         
-        #code to follow me goes here
+        # code to follow me goes here
         elif self.flyMode == 4:
             string = "todo"
         
-        #code to trail behind goes here
+        # code to trail behind goes here
         elif self.flyMode == 5:
             string = "todo"
         
-        #code to fly above goes here
+        # code to fly above goes here
         elif self.flyMode == 6:
             string = "todo"
 
-        self.status = self.flyMode
+        self.status = 3
         self.flying = True
+        self.battery -= 5
 
-        self.log.info("Launched with fly mode: " + str(self.flyMode))
-
-        return True
+        self.droneLog.info("Launched with fly mode: " + str(self.flyMode))
     
-    #land drone
+    # land drone
     def land(self):
-        self.log.info("Landing!")
 
-        #code to land goes here
-        self.checkDrone()
+        # code to land goes here
         self.flying = False
-        self.log.info("Landed!")
-        return True
+        self.droneLog.info("Landed!")
+        
+        self.checkDrone()     
+        
 
-    #Emergency land drone
+    # Emergency land drone
     def emergencyLand(self):
-        self.log.info("Emergency landing!")
+        self.droneLog.info("Emergency landing!")
 
-        #code to emergency land goes here
+        # code to emergency land goes here
         self.status = 1
 
         self.checkDrone()
         self.flying = False
         self.status = 2
-        self.log.info("Emergency landed sucess.")
-        return True
+        self.droneLog.info("Emergency landed sucess.")
     
-    #attempt to return drone to base
+    # attempt to return drone to base
     def landAtBase(self):
-        self.log.info("Landing back at base.")
-
-        #code goes here
-        string = ""
-        self.log.info("Landed back at base.")
-        return True
+        self.droneLog.info("Landing back at base.")
+        
+        # code goes here
+        self.flying = False
+        self.status = 2
+        self.droneLog.info("Landed back at base.")
 
     # check if drone can fly
     def checkDrone(self):
-        self.log.info("Checking!")
+        self.droneLog.info("Checking!")
         self.status = 1
 
-        #code to check hardware goes here
+        # code to check hardware goes here
         self.battery = self.getBattery()
         self.altitude = self.getAltitude()
         self.status = 2
-        self.log.info("Check passed.")
-        return True
+        self.droneLog.info("Check passed.")
     
-    #update flight mode
-    def updateFlightMode(self, mode):
+    # update flight mode
+    def updateFlightMode(self):
 
-        if mode != self.flyMode:
-            self.log.info("Updating flight mode!")
-            self.flyMode = mode
-
-        
-            #change flight mode code goes here
-            if self.flying:
-                self.status = mode
-
-            self.log.info("Updated flight mode to " + str(mode))
-
-            return True
-        return False
+        self.droneLog.info("Switched flying mode"+ str(self.flyMode))
     
-    #toggle cameras
+    # toggle cameras
     def switchCamera(self):
-        self.log.info("Switching camera.")
+        self.droneLog.info("Switching camera.")
 
-        #code to switch between cameras goes here
+        # code to switch between cameras goes here
         if self.frontCamera:
             self.frontCamera = False
-            self.log.info("Switched to bottom camera.")
+            self.droneLog.info("Switched to bottom camera.")
         else:
             self.frontCamera = True
-            self.log.info("Switched to front camera.")
-        return True
+            self.droneLog.info("Switched to front camera.")
 
-    #get drone's battery
+    # get drone's battery
     def getBattery(self):
 
-        #code to get hardware battery goes here
-        self.log.info("Battery: " + str(self.battery))
+        # code to get hardware battery goes here
+        # self.log.info("Battery: " + str(self.battery))
         return self.battery
 
-    #get drone's altitude
+    # get drone's altitude
     def getAltitude(self):
 
-        #code to get altitude goes here
-        self.log.info("Drone altitude: " + str( self.y))
+        # code to get altitude goes here
+        # self.log.info("Drone altitude: " + str( self.y))
         return self.y
     
-    #update drone info list
+    # update drone info list
     def updateInfo(self):
-        self.droneInfo = [self.status, self.battery, self.velocity, self.altitude, self.errorCode]
+        return self.status, self.flyMode, self.battery, self.velocity, self.altitude, self.errorCode
     
-    #stop whatever the drone is doing
+    # stop whatever the drone is doing
     def stopEverything(self):
 
-        #code goes here
-        self.log.info("Drone stopped.")
-        return True
+        # code goes here
+        self.droneLog.info("Drone stopped.")
     
-    def updateCoords(self):
-        self.coords = [self.x, self.y, self.z, self.orientation]
+    def getCoords(self):
+         return self.x, self.y, self.z, self.orientation
     
+    def resetDrone(self):
+        if self.flying:
+            self.land()
+
+        # drone coords
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        self.orientation = self.getOrientation()
+    
+    # get drone's orientation
+    def getOrientation(self):
+
+        # code goes here
+        return 90 # drones default at a 90 degree angle facing foward
+
+        
+        
+        

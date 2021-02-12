@@ -32,22 +32,16 @@ public class DroneConnect implements Runnable {
     protected int[] dataFromDrone;
     protected DroneListener listener;
     protected MainActivity main;
-    protected int button;
 
     public DroneConnect(String IP, int PORT, MainActivity main) {
         this.IP = IP;
         this.PORT = PORT;
         this.main = main;
         listener = null;
-        button = 0;
         dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode
-        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
+        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, flymode, battery, velocity, altitude, error code
 
         main.setAppListener(new AppListener() {
-            @Override
-            public void onNavButtonPress(int type) {
-                button = type;
-            }
 
             @Override
             public void onDisconnectDrone() {
@@ -57,9 +51,9 @@ public class DroneConnect implements Runnable {
             @Override
             public void onUpdateDrone(int[] data) {
 
-                dataToDrone[0] = button;   //button
-                dataToDrone[1] = data[0];  //flight mode
-                dataToDrone[2] = data[1];  //velocity
+                dataToDrone[0] = data[0];   //button
+                dataToDrone[1] = data[1];  //flight mode
+                dataToDrone[2] = data[2];  //velocity
             }
         });
     }
@@ -68,7 +62,6 @@ public class DroneConnect implements Runnable {
     public void setDroneListener(DroneListener listener) {
         this.listener = listener;
     }
-
 
     @Override
     public void run() {
@@ -112,7 +105,7 @@ public class DroneConnect implements Runnable {
 
         } else {
 
-            System.out.println("Failed to connect video comms.");
+            System.out.println("Failed to establish a connection to drone.");
         }
     }
 
@@ -150,9 +143,12 @@ public class DroneConnect implements Runnable {
                     //update drone info
                     dataFromDrone[x] = intData;
 
-                   // reply += String.valueOf(intData);
+                    // reply += String.valueOf(intData);
 
                 }
+
+                //reset button
+                //button = 0;
 
                 //System.out.printf("Received: %s", reply);
                 //reply = "";
@@ -162,10 +158,10 @@ public class DroneConnect implements Runnable {
                     listener.onSetAppData(dataFromDrone);
                 }
 
-                //print button
-                if (dataToDrone[0] != 0) {
-                    System.out.println("Nav reply: " + dataToDrone[0]);
-                }
+                //if(dataToDrone[0] != 0){
+                //    System.out.println( dataToDrone[0]);
+               // }
+
 
             } catch (IOException e) {
                 e.printStackTrace();

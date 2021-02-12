@@ -1,15 +1,25 @@
 package com.example.my_opencv;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 
 import android.graphics.Bitmap;
+import android.os.Environment;
+import android.os.Looper;
 import android.util.Log;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -18,6 +28,9 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 
 import android.view.View;
@@ -27,6 +40,20 @@ import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+
+import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -44,15 +71,25 @@ public class MainActivity extends AppCompatActivity {
     private Switch followMeSwitch;
     private ProgressBar batteryBar;
     private TextView batteryText;
-   private int [] appInfo;
 
-    //drone values
-    private int [] droneInfo;
-    private boolean online;
+    //drone
+    private int status;
     private int flyMode;
-    private boolean flying;
+    private int battery;
     private int velocity;
+    private int altitude;
+    private int errorCode;
+
+    //app
+    private boolean online;
     private int savedFlyingMode;
+    private boolean flying;
+    private int button;
+    private LocationRequest mLocationRequest;
+    private double latitude;
+    private double longitude;
+    private long UPDATE_INTERVAL = 1000;
+    private long FASTEST_INTERVAL = 1000;
 
     //private AI ai;
 
@@ -94,14 +131,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //drone info
-        online = false;
-        droneInfo = new int[]{0,0,0,0,0};
+        status = 0;
         flyMode = 3;
-        flying = false;
+        battery = 100;
         velocity = 3;
-        savedFlyingMode = 4;
+        altitude = 0;
+        errorCode = 0;
 
-        appInfo = new int[]{flyMode, velocity};
+        //app
+        button = 0;
+        savedFlyingMode = 4;
+        online = false;
+        flying = false;
+        //startLocationUpdates();
 
         //setup image view and text
         imageView = findViewById(R.id.opencvImageView);
@@ -118,7 +160,8 @@ public class MainActivity extends AppCompatActivity {
         buttons = new Button[]{findViewById(R.id.takeoff_b), findViewById(R.id.emergency_b),
                 findViewById(R.id.up_b), findViewById(R.id.down_b), findViewById(R.id.left_b),
                 findViewById(R.id.right_b), findViewById(R.id.forward_b), findViewById(R.id.back_b),
-                findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b), findViewById(R.id.switchc_button)};
+                findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b), findViewById(R.id.switchc_button),
+                findViewById(R.id.baseland_b)};
 
         //get raulito image
         File r = new File(this.getFilesDir(), "raulito.bmp");
@@ -145,11 +188,11 @@ public class MainActivity extends AppCompatActivity {
             //update gui based on online status
             @Override
             public void onOnlineStatus(boolean online) {
-                updateGUI(online);
+
             }
 
             @Override
-            public void onSetAppData(int[] array) {
+            public void onSetAppData(int[] data) {
 
             }
 
@@ -173,21 +216,15 @@ public class MainActivity extends AppCompatActivity {
             //update online status
             @Override
             public void onOnlineStatus(boolean online) {
-                updateGUI(online);
+                handleOnlineChange(online);
             }
 
             //set new drone info from drone to app
             @Override
-            public void onSetAppData(int[] array) {
+            public void onSetAppData(int[] data) {
 
-                //update gui if drone status changed
-                if (array[0] != droneInfo[0]){
-                    flyMode = array[0];
-                    updateGUI(online);
-                }
-
-                //set new drone info
-                droneInfo = array;
+                handleDroneData(data);
+                //System.out.println("received: " + data[1]);
 
             }
 
@@ -195,11 +232,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onGetAppData() {
 
-                updateAppInfo();
+                //System.out.println(button);
+                //System.out.println(Arrays.toString(getAppInfo()));
 
-                if(appListener != null){
-                    appListener.onUpdateDrone(appInfo);
+                if (appListener != null) {
+                    System.out.println("switched: " + flyMode);
+                    appListener.onUpdateDrone(getAppInfo());
                 }
+
+                //reset
+                button = 0;
             }
 
         });
@@ -223,74 +265,117 @@ public class MainActivity extends AppCompatActivity {
         followMeSwitch = findViewById(R.id.followme_switch);
         followMeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
 
+            int controls;
+
             if (isChecked) {
 
                 flyMode = savedFlyingMode;
+                controls = View.INVISIBLE;
 
             } else {
 
                 flyMode = 3;
+                controls = View.VISIBLE;
+
             }
+
+            updateNavButtons(controls);
+            updateStatusText();
+
+            System.out.println("switched: " + flyMode);
+
         });
     }
 
-    //update gui buttons and text based on drone online status
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public void updateGUI(boolean status) {
+    //handle online change
+    public void handleOnlineChange(boolean online) {
 
-        online = status;
+        this.online = online;
+
+        updateStatusText();
 
         runOnUiThread(() -> {
+            connectSwitch.setChecked(online);
 
-            updateStatusText();
-
-            connectSwitch.setChecked(status);
-
-            batteryBar.setProgress(droneInfo[1],true);
-            batteryText.setText(String.valueOf(droneInfo[1]) + "%");
-
-            int controls; //weather to show or hide controls
-
-            if (status) {
-
-                //toast
+            if (online) {
                 Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
-
-                if(flying){
-                    buttons[0].setText("Land");
-
-                    //show/hide nav buttons
-                    if(flyMode == 3){
-                        controls = View.VISIBLE;
-                    }else{
-                        controls = View.INVISIBLE;
-                    }
-
-                    for(int x = 2 ; x < 10 ; x++){
-                        buttons[x].setVisibility(controls);
-                    }
-
-                }
-
-                //just show launch button
-                else{
-                    buttons[0].setText("Take Off");
-                }
-
             } else {
 
-                //toast
                 Toast.makeText(getApplicationContext(), "Offline!", Toast.LENGTH_SHORT).show();
 
                 //update status text to offline and red
                 imageView.setImageBitmap(raulito);
                 networkStatusText.setText("Offline");
                 networkStatusText.setTextColor(Color.RED);
+            }
+        });
+    }
 
+    //update gui buttons and text based on drone online status
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public void handleDroneData(int[] data) {
+
+        boolean statusChanged = false;
+
+        //check if there was a status change
+        if (data[0] != status) {
+            statusChanged = true;
+        }
+
+        //update battery
+        battery = data[2];
+
+        //update button text and flying status
+        if (statusChanged) {
+
+            //update flying status
+            if (status == 2 && data[0] >= 3) {
+
+                flying = true;
+
+            } else if (status >= 3 && data[0] == 2) {
+
+                flying = false;
             }
 
+            //update status and text
+            status = data[0];
+            updateStatusText();
+
+            //update button
+            updateLaunchButton();
+
+        }
+
+        //update battery
+        runOnUiThread(() -> {
+
+            batteryBar.setProgress(battery, true);
+            batteryText.setText(String.valueOf(battery) + "%");
         });
 
+    }
+
+    //update nav button visibility
+    private void updateNavButtons(int visible) {
+        runOnUiThread(() -> {
+            //update buttons
+            for (int x = 2; x < 10; x++) {
+                buttons[x].setVisibility(visible);
+            }
+        });
+    }
+
+    //update lanch/land button text
+    private void updateLaunchButton() {
+
+        runOnUiThread(() -> {
+            if (flying) {
+                buttons[0].setText("Land");
+            } else {
+                buttons[0].setText("Take Off");
+            }
+        });
     }
 
     //function to update image view with latest video feed
@@ -304,81 +389,220 @@ public class MainActivity extends AppCompatActivity {
         //land/takeoff, emergency, up, down, left, right, forward, backward, rot left, rot right
         //1-10
 
-        if (online){
-            int type;
+        if (online) {
 
             for (int x = 0; x < buttons.length; x++) {
 
                 if (view.getId() == buttons[x].getId()) {
 
-                    type = x + 1;
+                    button = x + 1;
 
-                    //update online status to app
-                    if (appListener != null) {
-                        appListener.onNavButtonPress(type);
-                    }
+                    //System.out.println(button);
+
                     break;
                 }
             }
         }
-
     }
 
-    private void updateStatusText(){
-        String status;
+    //update status text
+    private void updateStatusText() {
+        String statusText;
         int color;
 
-        switch(droneInfo[0]){
+        switch (status) {
             case 0:
-                status = "Offline";
+                statusText = "Offline";
                 color = Color.RED;
                 break;
             case 1:
-                status = "Checking";
+                statusText = "Checking";
                 color = Color.YELLOW;
                 break;
             case 2:
-                status = "Ready To Fly";
+                statusText = "Ready To Fly";
                 color = Color.GREEN;
                 break;
+
             case 3:
-                status = "Flying Manual";
-                color = Color.BLUE;
+                statusText = "Flying: ";
+                statusText += updateFlightText();
+                color = flyMode == 3 ? Color.BLUE : Color.MAGENTA;
+
                 break;
             case 4:
-                status = "Following you";
-                color = Color.MAGENTA;
-                break;
-            case 5:
-                status = "Trailing you";
-                color = Color.MAGENTA;
-                break;
-            case 6:
-                status = "Above you";
-                color = Color.MAGENTA;
-                break;
-            case 7:
-                status = "Landing";
+                statusText = "Landing";
                 color = Color.YELLOW;
-            case 8:
-                status = "Error!";
+            case 5:
+                statusText = "Error!";
                 color = Color.RED;
             default:
-                status = "";
+                statusText = "";
                 color = Color.RED;
         }
 
-        String finalStatus = status;
+        String finalStatusText = statusText;
         int finalColor = color;
 
-
-        networkStatusText.setText(finalStatus);
-        networkStatusText.setTextColor(finalColor);
+        runOnUiThread(() -> {
+            networkStatusText.setText(finalStatusText);
+            networkStatusText.setTextColor(finalColor);
+        });
 
     }
 
-    private void updateAppInfo(){
-        droneInfo[0] = flyMode;
-        droneInfo[0] = velocity;
+    //update status mode text
+    private String updateFlightText() {
+
+        String statusText = "";
+
+        if (flying) {
+            switch (flyMode) {
+                case 3:
+                    statusText += "Manual";
+
+                    break;
+                case 4:
+                    statusText += "Following";
+
+
+                    break;
+                case 5:
+                    statusText += "Trailing";
+
+                    break;
+                case 6:
+                    statusText += "Above";
+
+                    break;
+                default:
+                    statusText += "";
+                    break;
+            }
+        }
+
+        return statusText;
+    }
+
+    //return app data for drone
+    private int[] getAppInfo() {
+
+        return new int[]{button, flyMode, velocity};
+
+    }
+
+    //save image to phone
+    public void onPhotoTake(View view) {
+        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
+        System.out.println(getDateTime());
+    }
+
+    //return current date and time
+    private static String getDateTime() {
+        SimpleDateFormat day = new SimpleDateFormat("yyyy MM dd hh-mm-ss'.tsv'", Locale.getDefault());
+
+        return day.toString();
+
+    }
+
+    //do the actual saving wink wink
+    private void saveImage(Bitmap finalBitmap, String image_name) {
+
+        String root = Environment.getExternalStorageDirectory().toString();
+        File myDir = new File(root);
+        myDir.mkdirs();
+        String fname = "Image-" + image_name + ".jpg";
+        File file = new File(myDir, fname);
+        if (file.exists()) file.delete();
+
+
+        Log.i("LOAD", root + fname);
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Trigger new location updates at interval
+    protected void startLocationUpdates() {
+
+        // Create the location request to start receiving updates
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setInterval(UPDATE_INTERVAL);
+        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
+
+        // Create LocationSettingsRequest object using location request
+        LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder();
+        builder.addLocationRequest(mLocationRequest);
+        LocationSettingsRequest locationSettingsRequest = builder.build();
+
+        // Check whether location settings are satisfied
+        // https://developers.google.com/android/reference/com/google/android/gms/location/SettingsClient
+        SettingsClient settingsClient = LocationServices.getSettingsClient(this);
+        settingsClient.checkLocationSettings(locationSettingsRequest);
+
+        // new Google API SDK v11 uses getFusedLocationProviderClient(this)
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions();
+        }
+        getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, new LocationCallback() {
+                    @Override
+                    public void onLocationResult(LocationResult locationResult) {
+                        // do work here
+                        onLocationChanged(locationResult.getLastLocation());
+                    }
+                },
+                Looper.myLooper());
+    }
+
+    //get new location
+    public void onLocationChanged(Location location) {
+        // New location has now been determined
+        //String msg = "Updated Location: " +
+        //     Double.toString(location.getLatitude()) + "," +
+        //      Double.toString(location.getLongitude());
+        //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        // You can now create a LatLng Object for use with maps
+        //  LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+
+        latitude = location.getLatitude();
+        longitude = location.getLongitude();
+    }
+
+    // Get last known recent location using new Google Play Services SDK (v11+)
+    public void getLastLocation() {
+
+        FusedLocationProviderClient locationClient = getFusedLocationProviderClient(this);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions();
+        }
+
+        locationClient.getLastLocation()
+
+                .addOnSuccessListener(location -> {
+                    // GPS location can be null if GPS is switched off
+                    if (location != null) {
+                        onLocationChanged(location);
+                    }
+                })
+
+                .addOnFailureListener(e -> {
+                    Log.d("MapDemoActivity", "Error trying to get last GPS location");
+                    e.printStackTrace();
+                });
+    }
+
+    //request permission for location services
+    private void requestPermissions() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 2);
     }
 }
