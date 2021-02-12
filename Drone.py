@@ -29,14 +29,19 @@ class Drone:
         self.x = 0
         self.y = 0
         self.z = 0
-        self.orientation = self.getOrientation()
+        self.orientation = 0
 
-        # Check Camera status
+        #One time check of camera status
         ok, frame = self.camera.read()
         if not ok:
-            self.droneLog.info('Camera not working')
+            self.droneLog.info('Error: Camera not working')
+            self.status = 5
+            self.errorCode = 6
 
-        # Check Drone
+        self.checkDrone()
+
+    #launched when drone connects
+    def initDrone(self):
         self.checkDrone()
 
     # get latest info from app
@@ -63,8 +68,12 @@ class Drone:
 
     # Handle button logic
     def handleButton(self, button):
+        
+        #land if drone is flying and battery is 20 or less
+        if self.flying and self.battery <= 20:
+            self.land()
 
-        if self.status != 8:
+        if self.status != 5:
 
             # launch/land
             if button == 1:
@@ -187,7 +196,6 @@ class Drone:
         
         self.checkDrone()     
         
-
     # Emergency land drone
     def emergencyLand(self):
         self.droneLog.info("Emergency landing!")
@@ -217,13 +225,21 @@ class Drone:
         # code to check hardware goes here
         self.battery = self.getBattery()
         self.altitude = self.getAltitude()
-        self.status = 2
-        self.droneLog.info("Check passed.")
+        self.orientation = self.getOrientation()
+     
+        #low battery check
+        if self.battery <= 20 :
+            self.status = 5
+            self.errorCode = 1
+            self.droneLog.info("Error: Low Battery")
+        else:
+            self.status = 2
+            self.droneLog.info("Check passed.")
     
     # update flight mode
     def updateFlightMode(self):
 
-        self.droneLog.info("Switched flying mode"+ str(self.flyMode))
+        self.droneLog.info("Switched flying mode: "+ str(self.flyMode))
     
     # toggle cameras
     def switchCamera(self):
@@ -242,6 +258,7 @@ class Drone:
 
         # code to get hardware battery goes here
         # self.log.info("Battery: " + str(self.battery))
+
         return self.battery
 
     # get drone's altitude
@@ -253,7 +270,7 @@ class Drone:
     
     # update drone info list
     def updateInfo(self):
-        return self.status, self.flyMode, self.battery, self.velocity, self.altitude, self.errorCode
+        return self.status, self.battery, self.velocity, self.altitude, self.errorCode
     
     # stop whatever the drone is doing
     def stopEverything(self):
@@ -279,6 +296,7 @@ class Drone:
 
         # code goes here
         return 90 # drones default at a 90 degree angle facing foward
+    
 
         
         

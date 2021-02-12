@@ -38,8 +38,9 @@ public class DroneConnect implements Runnable {
         this.PORT = PORT;
         this.main = main;
         listener = null;
-        dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode
-        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, flymode, battery, velocity, altitude, error code
+        dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode, velocity
+        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
+        online = false;
 
         main.setAppListener(new AppListener() {
 
@@ -87,6 +88,8 @@ public class DroneConnect implements Runnable {
             i.printStackTrace();
         }
 
+        listener.onOnlineStatus(online);
+
         //if online continue to update gui and start communication
         if (online) {
 
@@ -95,16 +98,10 @@ public class DroneConnect implements Runnable {
 
             } else {
 
-                //update online status to app
-                if (listener != null) {
-                    listener.onOnlineStatus(true);
-                }
-
                 nav_comms();
             }
 
         } else {
-
             System.out.println("Failed to establish a connection to drone.");
         }
     }

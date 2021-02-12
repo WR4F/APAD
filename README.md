@@ -1,5 +1,10 @@
 # Autonomous Personal Assistant Drone
 
+TODO: 2.8 Video recording
+      2.9 Voice recognition mechanics/logic
+      3.0 GPS comparison to tell drone where to move
+      4.0 All follow me modes implemented using gps
+
 ===================APAD-LandScape Version Changes=================/n
 
 1.0: APAD App that launches in landscape mode. Connects to server to get live camera feed
@@ -44,5 +49,12 @@
     Added functionality to switch camera button and land at base button
     Camera button can save current image from view into phone's gallery
     Added location services as several functions to get phone's gps locations, off for now
+    Fixed a bug where if battery went below 0 the server script would crash since it cant convert negative ints to bytes
+    Drone will now land and send error code 1 (low battery) if battery is 20 or below, can't respond to commands after
+    Created error codes values found in manual and added a geterrorcodestring function in main to handle error codes
+    Fixed a bug where online switch would not reset if server is offline
+    Fixed a bug where I forgot to add break statements in a switch to error status and default (facepalm)
+    Fixed a bug where I forgot to update getDroneInfo in drone so the errorCode was not being sent thus not update on app
+    Camera status is only be checked once when drone is initialized else it has a change of failing since its already being used by video socket
 
 

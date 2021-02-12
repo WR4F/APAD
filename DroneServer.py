@@ -68,8 +68,12 @@ def video_connect():
                     #print("sent: " + str(size) + " bytes")
 
                 except socket.error as e:
-                    log.debug("Error at video comms: " + str(e))
+                    log.debug("Video disconnected or lost connection.")
                     break
+                except OverflowError as e:
+                    log.debug("Overflow error: " + str(e))
+                    log.info("Frame: " + str(frame))
+                    log.info("Size: " + str(size))
 
 #threaded nav connection
 def nav_connect():
@@ -115,8 +119,12 @@ def nav_connect():
                     #log.info("passed send data to app")
             
                 except socket.error as e:
-                    log.debug("Error at nav comm: " + str(e))
+                    log.debug("Nav disconnected or lost connection.")
                     break
+                except OverflowError as e:
+                    log.debug("Overflow error: " + str(e))
+                    log.info("Send: " + str(send))
+                    log.info("Recieved" + str(recv))
         
         drone.resetDrone()
                 

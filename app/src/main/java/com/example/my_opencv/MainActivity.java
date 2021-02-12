@@ -1,13 +1,10 @@
 package com.example.my_opencv;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 
@@ -48,10 +45,6 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.SettingsClient;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
@@ -223,8 +216,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSetAppData(int[] data) {
 
+                //update error code
+                errorCode = data[4];
+
+                //update battery
+                battery = data[1];
+
                 handleDroneData(data);
-                //System.out.println("received: " + data[1]);
 
             }
 
@@ -232,11 +230,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onGetAppData() {
 
-                //System.out.println(button);
-                //System.out.println(Arrays.toString(getAppInfo()));
-
                 if (appListener != null) {
-                    System.out.println("switched: " + flyMode);
                     appListener.onUpdateDrone(getAppInfo());
                 }
 
@@ -322,10 +316,7 @@ public class MainActivity extends AppCompatActivity {
             statusChanged = true;
         }
 
-        //update battery
-        battery = data[2];
-
-        //update button text and flying status
+        //update launch/land button text and flying status
         if (statusChanged) {
 
             //update flying status
@@ -415,10 +406,12 @@ public class MainActivity extends AppCompatActivity {
                 statusText = "Offline";
                 color = Color.RED;
                 break;
+
             case 1:
                 statusText = "Checking";
                 color = Color.YELLOW;
                 break;
+
             case 2:
                 statusText = "Ready To Fly";
                 color = Color.GREEN;
@@ -426,19 +419,25 @@ public class MainActivity extends AppCompatActivity {
 
             case 3:
                 statusText = "Flying: ";
-                statusText += updateFlightText();
+                statusText += getFlightModeString();
                 color = flyMode == 3 ? Color.BLUE : Color.MAGENTA;
 
                 break;
             case 4:
                 statusText = "Landing";
                 color = Color.YELLOW;
+                break;
+
             case 5:
-                statusText = "Error!";
+                statusText = "Error: ";
+                statusText += getErrorString();
                 color = Color.RED;
+                break;
+
             default:
-                statusText = "";
+                statusText = String.valueOf(status);
                 color = Color.RED;
+                break;
         }
 
         String finalStatusText = statusText;
@@ -452,7 +451,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //update status mode text
-    private String updateFlightText() {
+    private String getFlightModeString() {
 
         String statusText = "";
 
@@ -473,15 +472,59 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case 6:
                     statusText += "Above";
-
                     break;
+
                 default:
-                    statusText += "";
+                    statusText += String.valueOf(flyMode);
                     break;
             }
         }
 
         return statusText;
+    }
+
+    private String getErrorString() {
+        String errorCodeString;
+
+        switch (errorCode) {
+            case 1:
+                errorCodeString = "Low battery";
+                break;
+
+            case 2:
+                errorCodeString = "FL Engine";
+                break;
+
+            case 3:
+                errorCodeString = "FR Engine";
+                break;
+
+            case 4:
+                errorCodeString = "BL Engine";
+                break;
+
+            case 5:
+                errorCodeString = "BR Engine";
+                break;
+
+            case 6:
+                errorCodeString = "Camera Failure";
+                break;
+
+            case 7:
+                errorCodeString = "Power Failure";
+                break;
+
+            case 8:
+                errorCodeString = "GPS Failure";
+                break;
+
+            default:
+                errorCodeString = String.valueOf(errorCode);
+                break;
+        }
+
+        return errorCodeString;
     }
 
     //return app data for drone
