@@ -5,4 +5,6 @@ public interface AppListener {
     void onDisconnectDrone();
 
     void onUpdateDrone(int [] data);
+
+    void onRecordUpdate(int status);
 }

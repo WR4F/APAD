@@ -1,6 +1,4 @@
-import time
 import cv2
-import sys
 import logging
 
 
@@ -24,6 +22,8 @@ class Drone:
         self.camera = cv2.VideoCapture(0)
         self.frontCamera = True
         self.flying = False
+        
+        self.droneLog.info(self.camera.get(cv2.CAP_PROP_FPS))
 
         # drone coords
         self.x = 0

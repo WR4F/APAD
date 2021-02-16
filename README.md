@@ -57,4 +57,5 @@ TODO: 2.8 Video recording
     Fixed a bug where I forgot to update getDroneInfo in drone so the errorCode was not being sent thus not update on app
     Camera status is only be checked once when drone is initialized else it has a change of failing since its already being used by video socket
 
-
+2.8 Tried using videowrite from opencv but does not work, doesn't create the file
+    Fixed the constraints on the view

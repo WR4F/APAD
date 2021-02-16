@@ -7,344 +7,325 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/pauserec_b"
-        android:layout_width="65dp"
-        android:layout_height="37dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginLeft="32dp"
-        android:text="Pause"
-        android:textSize="12sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/followme_switch"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toEndOf="@+id/photo_button"
-        app:layout_constraintTop_toBottomOf="@+id/record_button" />
-
-    <Button
-        android:id="@+id/emergency_b"
-        android:layout_width="102dp"
-        android:layout_height="37dp"
-        android:background="@drawable/emergency_button_layout"
-        android:onClick="onButtonPressed"
-        android:text="Emergency"
-        android:textStyle="bold"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.499"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.018" />
-
-    <TextView
-        android:id="@+id/status_text"
-        android:layout_width="141dp"
-        android:layout_height="20dp"
-        android:text="Offline"
-        android:textColor="@android:color/holo_red_dark"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="@+id/opencvImageView"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.037"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/opencvImageView"
-        app:layout_constraintVertical_bias="0.017" />
-
-    <Button
         android:id="@+id/up_b"
         android:layout_width="48dp"
         android:layout_height="47dp"
+        android:layout_marginStart="88dp"
+        android:layout_marginLeft="88dp"
+        android:layout_marginBottom="44dp"
         android:background="@drawable/control_button_layout"
         android:onClick="onButtonPressed"
         android:text="U"
         android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/down_b"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.103"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.674" />
-
-    <ImageView
-        android:id="@+id/opencvImageView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <Button
-        android:id="@+id/baseland_b"
-        android:layout_width="84dp"
-        android:layout_height="56dp"
-        android:layout_marginBottom="16dp"
-        android:onClick="onButtonPressed"
-        android:text="Base Land"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/takeoff_b"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/switchc_button"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <Button
-        android:id="@+id/record_button"
-        android:layout_width="65dp"
-        android:layout_height="37dp"
-        android:layout_marginStart="120dp"
-        android:layout_marginLeft="120dp"
-        android:layout_marginBottom="24dp"
-        android:text="Rec"
-        android:textSize="12sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/mic_button"
-        app:layout_constraintTop_toBottomOf="@+id/emergency_b"
-        app:layout_constraintVertical_bias="0.846" />
-
-    <Button
-        android:id="@+id/forward_b"
-        android:layout_width="48dp"
-        android:layout_height="47dp"
-        android:layout_marginStart="480dp"
-        android:layout_marginLeft="480dp"
-        android:background="@drawable/control_button_layout"
-        android:onClick="onButtonPressed"
-        android:text="F"
-        android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/back_b"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.082"
-        app:layout_constraintStart_toEndOf="@+id/up_b"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.674" />
-
-    <Button
-        android:id="@+id/back_b"
-        android:layout_width="48dp"
-        android:layout_height="47dp"
-        android:layout_marginStart="484dp"
-        android:layout_marginLeft="484dp"
-        android:layout_marginBottom="108dp"
-        android:background="@drawable/control_button_layout"
-        android:onClick="onButtonPressed"
-        android:text="B"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.06"
-        app:layout_constraintStart_toEndOf="@+id/down_b"
-        app:layout_constraintTop_toBottomOf="@+id/connect_s"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <Button
-        android:id="@+id/rotate_left_b"
-        android:layout_width="45dp"
-        android:layout_height="44dp"
-        android:background="@drawable/control_button_layout"
-        android:onClick="onButtonPressed"
-        android:text="RL"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/rotate_right_b"
-        app:layout_constraintHorizontal_bias="0.911"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.534" />
-
-    <Button
-        android:id="@+id/rotate_right_b"
-        android:layout_width="46dp"
-        android:layout_height="45dp"
-        android:background="@drawable/control_button_layout"
-        android:onClick="onButtonPressed"
-        android:text="RR"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.953"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.543" />
+        app:layout_constraintBottom_toTopOf="@+id/group2"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/down_b"
         android:layout_width="48dp"
         android:layout_height="47dp"
 
+        android:layout_marginStart="88dp"
+        android:layout_marginLeft="88dp"
+        android:layout_marginTop="32dp"
         android:background="@drawable/control_button_layout"
         android:onClick="onButtonPressed"
         android:text="D"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.102"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.703" />
+        app:layout_constraintTop_toBottomOf="@+id/group2" />
+
+    <Button
+        android:id="@+id/pauserec_b"
+        android:layout_width="65dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="460dp"
+        android:layout_marginLeft="460dp"
+        android:layout_marginBottom="32dp"
+        android:onClick="onPauseRecButton"
+        android:text="Pause"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/emergency_b"
+        android:layout_width="102dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="440dp"
+        android:layout_marginLeft="440dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/emergency_button_layout"
+        android:onClick="onButtonPressed"
+        android:text="Emergency"
+        android:textStyle="bold"
+        android:visibility="visible"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/baseland_b"
+        android:layout_width="84dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginLeft="28dp"
+        android:layout_marginBottom="32dp"
+        android:onClick="onButtonPressed"
+        android:text="Base Land"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/record_button"
+        android:layout_width="65dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="460dp"
+        android:layout_marginLeft="460dp"
+        android:layout_marginBottom="88dp"
+        android:onClick="onRecordButton"
+        android:text="Rec"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/forward_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+        android:layout_marginEnd="100dp"
+        android:layout_marginRight="100dp"
+        android:background="@drawable/control_button_layout"
+        android:onClick="onButtonPressed"
+        android:text="F"
+        android:visibility="visible"
+        app:layout_constraintBaseline_toBaselineOf="@+id/up_b"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/back_b"
+        android:layout_width="48dp"
+        android:layout_height="47dp"
+        android:layout_marginEnd="100dp"
+        android:layout_marginRight="100dp"
+        android:background="@drawable/control_button_layout"
+        android:onClick="onButtonPressed"
+        android:text="B"
+        android:visibility="visible"
+        app:layout_constraintBaseline_toBaselineOf="@+id/down_b"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/rotate_left_b"
+        android:layout_width="45dp"
+        android:layout_height="44dp"
+        android:layout_marginEnd="36dp"
+        android:layout_marginRight="36dp"
+        android:background="@drawable/control_button_layout"
+        android:onClick="onButtonPressed"
+        android:text="RL"
+        android:visibility="visible"
+        app:layout_constraintBaseline_toBaselineOf="@+id/right_b"
+        app:layout_constraintEnd_toStartOf="@+id/group4" />
+
+    <Button
+        android:id="@+id/rotate_right_b"
+        android:layout_width="46dp"
+        android:layout_height="45dp"
+        android:layout_marginStart="48dp"
+        android:layout_marginLeft="48dp"
+        android:background="@drawable/control_button_layout"
+        android:onClick="onButtonPressed"
+        android:text="RR"
+        android:visibility="visible"
+        app:layout_constraintBaseline_toBaselineOf="@+id/rotate_left_b"
+        app:layout_constraintStart_toEndOf="@+id/group4" />
 
     <Button
         android:id="@+id/right_b"
         android:layout_width="46dp"
         android:layout_height="45dp"
-        android:layout_marginEnd="388dp"
 
-        android:layout_marginRight="388dp"
+        android:layout_marginStart="40dp"
+        android:layout_marginLeft="40dp"
         android:background="@drawable/control_button_layout"
         android:onClick="onButtonPressed"
         android:text="R"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/rotate_left_b"
-        app:layout_constraintHorizontal_bias="0.991"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.543" />
+        app:layout_constraintBaseline_toBaselineOf="@+id/left_b"
+        app:layout_constraintStart_toEndOf="@+id/group2" />
 
     <Button
         android:id="@+id/left_b"
         android:layout_width="45dp"
         android:layout_height="44dp"
-        android:background="@drawable/control_button_layout"
+        android:layout_marginEnd="36dp"
 
+        android:layout_marginRight="36dp"
+        android:layout_marginBottom="200dp"
+        android:background="@drawable/control_button_layout"
         android:onClick="onButtonPressed"
         android:text="L"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/right_b"
-        app:layout_constraintHorizontal_bias="0.342"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.542" />
+        app:layout_constraintEnd_toEndOf="@+id/group2" />
 
     <Button
         android:id="@+id/takeoff_b"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="168dp"
+        android:layout_marginLeft="168dp"
+        android:layout_marginBottom="40dp"
         android:background="@drawable/takeoff_button_layout"
         android:onClick="onButtonPressed"
         android:text="Take Off"
         android:textStyle="bold"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.222"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.933" />
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <Switch
-        android:id="@+id/connect_s"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Online"
+    <Button
+        android:id="@+id/switchc_button"
+        android:layout_width="48dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="268dp"
+        android:layout_marginRight="268dp"
+        android:onClick="onButtonPressed"
+        android:text="SC"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/settings_button"
+        android:layout_width="45dp"
+        android:layout_height="38dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="172dp"
+        android:layout_marginRight="172dp"
+        android:text="S"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/mic_button"
+        android:layout_width="56dp"
+        android:layout_height="38dp"
+        android:layout_marginEnd="316dp"
+        android:layout_marginRight="316dp"
+        android:layout_marginBottom="48dp"
+        android:text="Mic"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <Button
+        android:id="@+id/photo_button"
+        android:layout_width="65dp"
+        android:layout_height="37dp"
+        android:layout_marginStart="320dp"
+        android:layout_marginLeft="320dp"
+        android:layout_marginBottom="44dp"
+        android:onClick="onPhotoTake"
+        android:text="Photo"
+        android:textSize="12sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageView
+        android:id="@+id/opencvImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible"
+        app:layout_constraintBottom_toTopOf="@+id/emergency_b"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.934"
-        app:layout_constraintStart_toEndOf="@+id/emergency_b"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.023" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <ProgressBar
         android:id="@+id/battery_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="54dp"
         android:layout_height="19dp"
+        android:layout_marginStart="196dp"
+        android:layout_marginLeft="196dp"
+        android:layout_marginTop="16dp"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/emergency_b"
-        app:layout_constraintHorizontal_bias="0.216"
-        app:layout_constraintStart_toEndOf="@+id/status_text"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.017" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/battery_text"
-        android:layout_width="38dp"
-        android:layout_height="20dp"
-        android:text="100%"
+    <Switch
+        android:id="@+id/connect_s"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="44dp"
+        android:layout_marginRight="44dp"
+        android:text="Online"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/emergency_b"
-        app:layout_constraintHorizontal_bias="0.285"
-        app:layout_constraintStart_toEndOf="@+id/battery_progress"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.017" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Switch
         android:id="@+id/followme_switch"
         android:layout_width="143dp"
         android:layout_height="43dp"
+        android:layout_marginEnd="52dp"
+        android:layout_marginRight="52dp"
+        android:layout_marginBottom="40dp"
         android:text="Follow Me"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.902"
-        app:layout_constraintStart_toEndOf="@+id/mic_button"
-        app:layout_constraintTop_toBottomOf="@+id/back_b"
-        app:layout_constraintVertical_bias="0.63" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
-        android:id="@+id/switchc_button"
-        android:layout_width="48dp"
-        android:layout_height="36dp"
-        android:onClick="onButtonPressed"
-        android:text="SC"
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="141dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginLeft="28dp"
+        android:layout_marginTop="16dp"
+        android:text="Offline"
+        android:textColor="@android:color/holo_red_dark"
         android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/settings_button"
-        app:layout_constraintHorizontal_bias="0.614"
-        app:layout_constraintStart_toEndOf="@+id/emergency_b"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.018" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/settings_button"
-        android:layout_width="45dp"
-        android:layout_height="38dp"
-        android:layout_marginStart="246dp"
-        android:layout_marginLeft="246dp"
-        android:text="S"
+    <TextView
+        android:id="@+id/battery_text"
+        android:layout_width="38dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="284dp"
+        android:layout_marginLeft="284dp"
+        android:layout_marginTop="16dp"
+        android:text="100%"
         android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/forward_b"
-        app:layout_constraintEnd_toStartOf="@+id/connect_s"
-        app:layout_constraintHorizontal_bias="0.16"
-        app:layout_constraintStart_toStartOf="@+id/emergency_b"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.067" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/mic_button"
-        android:layout_width="56dp"
-        android:layout_height="38dp"
-        android:layout_marginEnd="168dp"
-        android:layout_marginRight="168dp"
-        android:layout_marginBottom="16dp"
-        android:text="Mic"
-        android:visibility="visible"
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/group2"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="112dp"
+        android:layout_marginLeft="112dp"
+        android:layout_marginBottom="216dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.152"
-        app:layout_constraintStart_toEndOf="@+id/takeoff_b"
-        app:layout_constraintTop_toBottomOf="@+id/switchc_button"
-        app:layout_constraintVertical_bias="0.952" />
+        app:layout_constraintStart_toStartOf="parent" />
 
-    <Button
-        android:id="@+id/photo_button"
-        android:layout_width="65dp"
-        android:layout_height="37dp"
-        android:onClick="onPhotoTake"
-        android:text="Photo"
-        android:textSize="12sp"
+    <androidx.constraintlayout.widget.Group
+        android:id="@+id/group4"
+        android:layout_width="5dp"
+        android:layout_height="27dp"
+        android:layout_marginEnd="128dp"
+        android:layout_marginRight="128dp"
+        android:layout_marginBottom="300dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/record_button"
-        app:layout_constraintHorizontal_bias="0.43"
-        app:layout_constraintStart_toEndOf="@+id/mic_button"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.917" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

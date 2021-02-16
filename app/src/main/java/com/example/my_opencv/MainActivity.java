@@ -27,6 +27,7 @@ import org.opencv.android.OpenCVLoader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
 
 
@@ -79,6 +80,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean flying;
     private int button;
     private LocationRequest mLocationRequest;
+    private boolean recording;
+    private boolean paused;
     private double latitude;
     private double longitude;
     private long UPDATE_INTERVAL = 1000;
@@ -137,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
         online = false;
         flying = false;
         //startLocationUpdates();
+        recording = false;
+        paused = false;
 
         //setup image view and text
         imageView = findViewById(R.id.opencvImageView);
@@ -154,7 +159,7 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.up_b), findViewById(R.id.down_b), findViewById(R.id.left_b),
                 findViewById(R.id.right_b), findViewById(R.id.forward_b), findViewById(R.id.back_b),
                 findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b), findViewById(R.id.switchc_button),
-                findViewById(R.id.baseland_b)};
+                findViewById(R.id.baseland_b), findViewById(R.id.record_button)};
 
         //get raulito image
         File r = new File(this.getFilesDir(), "raulito.bmp");
@@ -388,8 +393,6 @@ public class MainActivity extends AppCompatActivity {
 
                     button = x + 1;
 
-                    //System.out.println(button);
-
                     break;
                 }
             }
@@ -536,15 +539,15 @@ public class MainActivity extends AppCompatActivity {
 
     //save image to phone
     public void onPhotoTake(View view) {
-        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
+        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime() );
         System.out.println(getDateTime());
     }
 
     //return current date and time
     private static String getDateTime() {
-        SimpleDateFormat day = new SimpleDateFormat("yyyy MM dd hh-mm-ss'.tsv'", Locale.getDefault());
+        //SimpleDateFormat day = new SimpleDateFormat("yyyy MM dd hh-mm-ss", Locale.getDefault());
 
-        return day.toString();
+        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 
     }
 
@@ -552,9 +555,9 @@ public class MainActivity extends AppCompatActivity {
     private void saveImage(Bitmap finalBitmap, String image_name) {
 
         String root = Environment.getExternalStorageDirectory().toString();
-        File myDir = new File(root);
+        File myDir = new File(root,"Drone");
         myDir.mkdirs();
-        String fname = "Image-" + image_name + ".jpg";
+        String fname = "" + image_name + ".jpg";
         File file = new File(myDir, fname);
         if (file.exists()) file.delete();
 
@@ -647,5 +650,57 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 2);
+    }
+
+
+    //record button
+    public void onRecordButton(View view) {
+
+        if (online){
+            int id;
+            String status;
+
+            //switch recording and text status
+            if (!recording) {
+                id = 1;
+                recording = true;
+                status = "Stop";
+            } else {
+                id = 3;
+                recording = false;
+                status = "Rec";
+            }
+
+            //notify drone connect and update button text
+            appListener.onRecordUpdate(id);
+
+            ((Button) view).setText(status);
+        }
+
+    }
+
+    //record button
+    public void onPauseRecButton(View view) {
+
+        if(online){
+            int id;
+            String status;
+
+            //switch recording and text status
+            if(paused){
+                id = 1;
+                paused = false;
+                status = "pause";
+            } else{
+                id = 2;
+                paused = true;
+                status = "play";
+            }
+
+            //notify drone connect and update button text
+            appListener.onRecordUpdate(id);
+            ((Button) view).setText(status);
+        }
+
     }
 }

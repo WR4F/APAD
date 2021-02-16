@@ -1,20 +1,26 @@
 package com.example.my_opencv;
 
 import android.graphics.Bitmap;
+import android.os.Environment;
 
 import org.opencv.android.Utils;
 import org.opencv.core.CvException;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.videoio.VideoWriter;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class DroneConnect implements Runnable {
 
@@ -33,6 +39,10 @@ public class DroneConnect implements Runnable {
     protected DroneListener listener;
     protected MainActivity main;
 
+    protected VideoWriter videoWriter;
+    protected int record; //0 nothing, 1 record, 2 pause, 3 stop (and save)
+    protected Size size;
+
     public DroneConnect(String IP, int PORT, MainActivity main) {
         this.IP = IP;
         this.PORT = PORT;
@@ -41,6 +51,8 @@ public class DroneConnect implements Runnable {
         dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode, velocity
         dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
         online = false;
+        record = 0;
+        size = new Size(640, 480);
 
         main.setAppListener(new AppListener() {
 
@@ -55,6 +67,13 @@ public class DroneConnect implements Runnable {
                 dataToDrone[0] = data[0];   //button
                 dataToDrone[1] = data[1];  //flight mode
                 dataToDrone[2] = data[2];  //velocity
+            }
+
+            @Override
+            public void onRecordUpdate(int status) {
+
+                record = status;
+
             }
         });
     }
@@ -144,20 +163,10 @@ public class DroneConnect implements Runnable {
 
                 }
 
-                //reset button
-                //button = 0;
-
-                //System.out.printf("Received: %s", reply);
-                //reply = "";
-
                 //set latest data from drone to app
                 if (listener != null) {
                     listener.onSetAppData(dataFromDrone);
                 }
-
-                //if(dataToDrone[0] != 0){
-                //    System.out.println( dataToDrone[0]);
-               // }
 
 
             } catch (IOException e) {
@@ -208,13 +217,6 @@ public class DroneConnect implements Runnable {
                     //byte frame
                     fr = new byte[bytesToRead];
 
-                    //get whole frame x bytes at a time
-                    //                    while(true){
-                    //                        bytesRead += input.read(fr);
-                    //                        if(bytesRead >= bytesToRead){
-                    //                            break;
-                    //                        }
-                    //                    }
 
                     //get frame
                     input.readFully(fr);
@@ -222,9 +224,24 @@ public class DroneConnect implements Runnable {
                     //convert binary to MAT
                     myFrame = Imgcodecs.imdecode(new MatOfByte(fr), Imgcodecs.IMREAD_COLOR);
 
-                    //show packet info
-                    // String info = ", w:" + myFrame.width() + ", h: " + myFrame.height();
-                    //System.out.println("Packet: " + fr + ", packet size: " + bytesToRead + info);
+                    if (record == 1 ){
+                       if(videoWriter == null){
+                           videoWriter = new VideoWriter(recordFilePath(),VideoWriter.fourcc('M', 'J', 'P', 'G'),30.0, size);
+
+                       }
+
+                       if(!videoWriter.isOpened()){
+
+                           videoWriter.open(recordFilePath(),VideoWriter.fourcc('M', 'J', 'P', 'G'),30.0, size);
+                       }
+
+                        System.out.println("Writing "+ myFrame.toString());
+                        videoWriter.write(myFrame);
+
+                    } else if (record == 3) {
+                        System.out.println("released");
+                        videoWriter.release();
+                    }
 
                     //convert and update image view
                     Bitmap bmp = convertMatToBitMap(myFrame);
@@ -287,4 +304,21 @@ public class DroneConnect implements Runnable {
 
     }
 
+    //return current date and time
+    private static String getDateTime() {
+
+        return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+
+    }
+
+    private String recordFilePath() {
+        File sddir = Environment.getExternalStorageDirectory();
+        File vrdir = new File(sddir, "Drone");
+        String mTimeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File file = new File(vrdir, "KLI_" + mTimeStamp + ".avi");
+        String filepath = file.getAbsolutePath();
+
+        return filepath;
+
+    }
 }
