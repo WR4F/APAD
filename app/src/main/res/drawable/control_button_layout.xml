@@ -3,6 +3,7 @@
     <item
         android:bottom="6dp"
         android:drawable="@drawable/control_button"
-        android:top="6dp" />
+        android:top="6dp"
+        />
 
 </selector>

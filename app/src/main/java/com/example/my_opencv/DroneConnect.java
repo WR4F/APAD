@@ -52,7 +52,7 @@ public class DroneConnect implements Runnable {
         dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
         online = false;
         record = 0;
-        size = new Size(640, 480);
+        size = new Size(640, 360);
 
         main.setAppListener(new AppListener() {
 

@@ -59,3 +59,6 @@ TODO: 2.8 Video recording
 
 2.8 Tried using videowrite from opencv but does not work, doesn't create the file
     Fixed the constraints on the view
+    IDEAL FOR 6.2" VIEW
+2.8.1 On button press changes color of button
+
