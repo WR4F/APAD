@@ -2,9 +2,12 @@ package com.example.my_opencv;
 
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.util.Log;
 
+import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvException;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
@@ -38,7 +41,7 @@ public class AI {
     }
 
     //identify objects in frame
-    public Mat identify(Mat frame) {
+    public Bitmap identify(Mat frame) {
         final int IN_WIDTH = 300;
         final int IN_HEIGHT = 300;
         final float WH_RATIO = (float)IN_WIDTH / IN_HEIGHT;
@@ -94,7 +97,7 @@ public class AI {
                         Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(0, 0, 0));
             }
         }
-        return frame;
+        return convertMatToBitMap(frame);
     }
 
     // Upload file to storage and return a path.
@@ -118,6 +121,23 @@ public class AI {
             Log.i(TAG, "Failed to upload a file");
         }
         return "";
+    }
+
+    //convert MAT to bmp
+    private static Bitmap convertMatToBitMap(Mat input) {
+        Bitmap bmp = null;
+        Mat rgb = new Mat();
+        Imgproc.cvtColor(input, rgb, Imgproc.COLOR_BGR2RGB);
+
+        try {
+            bmp = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(rgb, bmp);
+        } catch (CvException e) {
+            e.printStackTrace();
+            System.out.println("failed to convert mat to bmp");
+        }
+        return bmp;
+
     }
 
     private static final String TAG = "OpenCV/Sample/MobileNet";

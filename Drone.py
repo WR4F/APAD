@@ -1,6 +1,8 @@
 import cv2
 import logging
-
+import adafruit_gps
+import serial
+import time, math
 
 class Drone:
 
@@ -37,6 +39,20 @@ class Drone:
             self.droneLog.info('Error: Camera not working')
             self.status = 5
             self.errorCode = 6
+        
+       
+        uart = serial.Serial("/dev/serial0", baudrate=9600, timeout=10)
+
+        # Create a GPS module instance.
+        self.gps = adafruit_gps.GPS(uart, debug=False) 
+        self.gps.send_command(b'PMTK220,1000')
+        self.last_print = time.monotonic()
+
+        #GPS variables
+        self.appLAT = 0
+        self.appLONG = 0
+        self.droneLAT = 0
+        self.droneLONG = 0
 
         self.checkDrone()
 
@@ -47,15 +63,26 @@ class Drone:
     # get latest info from app
     def sendAppData(self, update):
 
+        #get gps data
+        self.appLAT = update[3]
+        self.appLONG = update[4]
+
         # handle new flight mode
-        if self.flyMode != update[1]:
-            self.flyMode = update[1]
+        if self.flyMode != int(update[1]):
+            self.flyMode = int(update[1])
             self.updateFlightMode()
 
         #self.appLog.info(str(update))
 
         # handle button pressed
-        self.handleButton(update[0])
+        if int(update[0]) != 0:
+            self.handleButton(int(update[0]))
+        
+        if self.flyMode != 3:
+            current = time.monotonic()
+
+            if current - self.last_print >= 1.0:
+                self.getGPS()
 
     # send latest drone info to app
     def getDroneData(self):
@@ -151,7 +178,7 @@ class Drone:
         
     # get frame from camera
     def getFrame(self):
-        return self.camera.read()
+        return self.camera.read()[1]
         
     # change resolution, only supports native resolutions of camera 
     def changeCameraResolution(self, res):
@@ -296,8 +323,49 @@ class Drone:
 
         # code goes here
         return 90 # drones default at a 90 degree angle facing foward
-    
 
+    def getGPS(self):
         
+        self.gps.update()
+
+
+        if not self.gps.has_fix:
+            print('Waiting for fix...')
+            return False
+
+        self.droneLAT = self.gps.latitude
+        self.droneLONG = self.gps.longitude
+
+        print('=' * 40)  # Print a separator line.
+        #print('Latitude: {0:.6f} degrees'.format(self.gps.latitude))
+        #print('Longitude: {0:.6f} degrees'.format(self.gps.longitude))
+
+        self.handleGPS()
+    
+    def handleGPS(self):
+        #radius of the Earth
+        R = 6373.0
+
+         #coordinates
+        lat1 = math.radians(self.droneLAT)     
+        lon1 = math.radians(self.droneLONG)
+        lat2 = math.radians(self.appLAT)
+        lon2 = math.radians(self.appLONG)
+
+        #change in coordinates
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+
+        a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        distance = R * c  
+        
+        print('{0:.6f} {0:.6f} {0:.6f} {0:.6f}'.format(self.droneLAT, self.appLAT, self.droneLONG, self.appLONG))    
+
+        print(distance)
+
+
+
+
         
         

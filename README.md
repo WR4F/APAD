@@ -59,6 +59,16 @@ TODO: 2.8 Video recording
 
 2.8 Tried using videowrite from opencv but does not work, doesn't create the file
     Fixed the constraints on the view
-    IDEAL FOR 6.2" VIEW
+
 2.8.1 On button press changes color of button
 
+2.8.2 Created a thread handler for when holding down the button to send continuous commands
+      Changed view mode to immersive, hiding the phone UI
+      Changed background of imageview in offline mode
+      imported the pocketshpinx AAR as aar module and added as dependency to main app
+
+2.8.3 Switched dataToDrone array to double to send gps data
+      Edited server scripts to deal with doubles instead
+      Can calculatre distance between gps coords
+
+2.8.4 Added updated drone.py, droneServer.py, and ARDRONE.py which can be used to control the ar drone 2.0 by parot

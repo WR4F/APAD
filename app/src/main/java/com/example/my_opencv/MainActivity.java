@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 
@@ -23,14 +24,21 @@ import org.opencv.android.BaseLoaderCallback;
 
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.android.Utils;
+import org.opencv.core.CvException;
+import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -46,6 +54,7 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.model.LatLng;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
@@ -86,8 +95,9 @@ public class MainActivity extends AppCompatActivity {
     private double longitude;
     private long UPDATE_INTERVAL = 1000;
     private long FASTEST_INTERVAL = 1000;
+    private boolean run;
 
-    //private AI ai;
+    private AI ai;
 
     private AppListener appListener;
 
@@ -116,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("ClickableViewAccessibility")
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,6 +136,12 @@ public class MainActivity extends AppCompatActivity {
         // OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
         mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         setContentView(R.layout.activity_main);
+
+        //hide PHONE UI
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE |
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
         //drone info
         status = 0;
@@ -142,6 +159,11 @@ public class MainActivity extends AppCompatActivity {
         //startLocationUpdates();
         recording = false;
         paused = false;
+        run = false;
+
+        //AI
+        ai = new AI(getApplicationContext());
+        ai.createDDNNetwork();
 
         //setup image view and text
         imageView = findViewById(R.id.opencvImageView);
@@ -161,10 +183,58 @@ public class MainActivity extends AppCompatActivity {
                 findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b), findViewById(R.id.switchc_button),
                 findViewById(R.id.baseland_b), findViewById(R.id.record_button)};
 
+        //setup ontouch listeners for buttons
+        for (Button button : buttons) {
+
+            button.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+
+                    //get time between touch
+                    long eventDuration = event.getEventTime() - event.getDownTime();
+
+                    //first touch handle
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+
+                        run = true;
+                        v.setPressed(true);
+                        Thread buttonThread = new Thread(new Runnable() {
+                            public void run() {
+                                while (run) {
+                                    buttonPress(v);
+
+                                    try {
+                                        Thread.sleep(300);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                            }
+                        });
+
+                        buttonThread.start();
+                    }
+
+                    if (event.getAction() == MotionEvent.ACTION_UP) {
+                        run = false;
+                        v.setPressed(false);
+                    }
+
+                    return true;
+                }
+            });
+        }
+
         //get raulito image
-        File r = new File(this.getFilesDir(), "raulito.bmp");
-        raulito = BitmapFactory.decodeFile(r.getAbsolutePath());
-        imageView.setImageBitmap(raulito);
+        try {
+            InputStream  r = getAssets().open("APAD.bmp");
+            raulito = BitmapFactory.decodeStream(r);
+            imageView.setImageBitmap(raulito);
+            r.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         //IP
         String IP = "10.0.0.41";
@@ -179,8 +249,8 @@ public class MainActivity extends AppCompatActivity {
 
             //update image view
             @Override
-            public void onUpdateImageView(Bitmap bmp) {
-                updateImageView(bmp);
+            public void onUpdateImageView(Mat mat) {
+                updateImageView(mat);
             }
 
             //update gui based on online status
@@ -207,7 +277,7 @@ public class MainActivity extends AppCompatActivity {
         droneNav.setDroneListener(new DroneListener() {
 
             @Override
-            public void onUpdateImageView(Bitmap bmp) {
+            public void onUpdateImageView(Mat mat) {
 
             }
 
@@ -284,6 +354,23 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("switched: " + flyMode);
 
         });
+
+        startLocationUpdates();
+
+        //======================================END OF ONCREAT===================================
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        View decorView = getWindow().getDecorView();
+        if (hasFocus) {
+            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE |
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+        }
     }
 
     //handle online change
@@ -375,28 +462,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //function to update image view with latest video feed
-    public void updateImageView(Bitmap bmp) {
-        runOnUiThread(() -> imageView.setImageBitmap(bmp));
+    public void updateImageView(Mat mat) {
+
+        //Bitmap bmp = ai.identify(mat);
+
+       runOnUiThread(new Runnable() {
+           @Override
+           public void run() {
+                imageView.setImageBitmap(convertMatToBitMap(mat));
+           }
+       });
 
     }
 
+
     //handle button press
-    public void onButtonPressed(View view) {
+    public void buttonPress(View view) {
         //land/takeoff, emergency, up, down, left, right, forward, backward, rot left, rot right
         //1-10
 
         if (online) {
-
             for (int x = 0; x < buttons.length; x++) {
 
                 if (view.getId() == buttons[x].getId()) {
 
                     button = x + 1;
 
+                    System.out.println(button);
                     break;
+
                 }
             }
         }
+
+
     }
 
     //update status text
@@ -450,6 +549,23 @@ public class MainActivity extends AppCompatActivity {
             networkStatusText.setText(finalStatusText);
             networkStatusText.setTextColor(finalColor);
         });
+
+    }
+
+    //convert MAT to bmp
+    private static Bitmap convertMatToBitMap(Mat input) {
+        Bitmap bmp = null;
+        Mat rgb = new Mat();
+        Imgproc.cvtColor(input, rgb, Imgproc.COLOR_BGR2RGB);
+
+        try {
+            bmp = Bitmap.createBitmap(rgb.cols(), rgb.rows(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(rgb, bmp);
+        } catch (CvException e) {
+            e.printStackTrace();
+            System.out.println("failed to convert mat to bmp");
+        }
+        return bmp;
 
     }
 
@@ -531,15 +647,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //return app data for drone
-    private int[] getAppInfo() {
+    private double[] getAppInfo() {
 
-        return new int[]{button, flyMode, velocity};
+        return new double[]{button, flyMode, velocity, latitude, longitude};
 
     }
 
     //save image to phone
     public void onPhotoTake(View view) {
-        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime() );
+        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
         System.out.println(getDateTime());
     }
 
@@ -555,7 +671,7 @@ public class MainActivity extends AppCompatActivity {
     private void saveImage(Bitmap finalBitmap, String image_name) {
 
         String root = Environment.getExternalStorageDirectory().toString();
-        File myDir = new File(root,"Drone");
+        File myDir = new File(root, "Drone");
         myDir.mkdirs();
         String fname = "" + image_name + ".jpg";
         File file = new File(myDir, fname);
@@ -610,12 +726,12 @@ public class MainActivity extends AppCompatActivity {
     //get new location
     public void onLocationChanged(Location location) {
         // New location has now been determined
-        //String msg = "Updated Location: " +
-        //     Double.toString(location.getLatitude()) + "," +
-        //      Double.toString(location.getLongitude());
-        //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-        // You can now create a LatLng Object for use with maps
-        //  LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+//        String msg = "Updated Location: " +
+//             Double.toString(location.getLatitude()) + "," +
+//              Double.toString(location.getLongitude());
+//        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+         //You can now create a LatLng Object for use with maps
+        //LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
         latitude = location.getLatitude();
         longitude = location.getLongitude();
@@ -656,7 +772,7 @@ public class MainActivity extends AppCompatActivity {
     //record button
     public void onRecordButton(View view) {
 
-        if (online){
+        if (online) {
             int id;
             String status;
 
@@ -682,16 +798,16 @@ public class MainActivity extends AppCompatActivity {
     //record button
     public void onPauseRecButton(View view) {
 
-        if(online){
+        if (online) {
             int id;
             String status;
 
             //switch recording and text status
-            if(paused){
+            if (paused) {
                 id = 1;
                 paused = false;
                 status = "pause";
-            } else{
+            } else {
                 id = 2;
                 paused = true;
                 status = "play";

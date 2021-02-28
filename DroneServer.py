@@ -1,4 +1,4 @@
-import socket, cv2, sys, logging
+import socket, cv2, sys, logging, time, struct
 from Drone import Drone
 
 # import thread module 
@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.NOTSET)
 log = logging.getLogger("Server")
 
 #socket info
-host_ip = '10.0.0.41'
+host_ip = '10.0.0.41' 
 vport = 9999
 nport = 9998
 video_address = (host_ip, vport)
@@ -34,6 +34,8 @@ except socket.error as e:
 #drone class
 drone = Drone()
 
+time.sleep(10)
+
 #threaded video connection
 def video_connect():
     
@@ -49,7 +51,7 @@ def video_connect():
 
                 try:
                     #read frame
-                    img,frame = drone.getFrame()
+                    frame = drone.getFrame()
                 
                     #resize and encode to jpg
                     #frame = imutils.resize(frame, width=320)
@@ -103,7 +105,7 @@ def nav_connect():
                         data = c.recv(4096)
 
                         #conver from binary to int and place in recv list
-                        integer = int.from_bytes(bytes=data, byteorder='big')
+                        integer = struct.unpack("!d",data)[0]
                         recv[x]= integer        
 
                         #send drone data to app
@@ -112,6 +114,8 @@ def nav_connect():
                     #log.info("recieved:" + str(recv))
                     
                     #log.info("sent:" + str(send))
+                    
+                    print(recv)
                     
                     #send app data to drone    
                     drone.sendAppData(recv)

@@ -34,7 +34,7 @@ public class DroneConnect implements Runnable {
     protected DataOutputStream output;
     protected boolean online;
 
-    protected int[] dataToDrone;
+    protected double[] dataToDrone;
     protected int[] dataFromDrone;
     protected DroneListener listener;
     protected MainActivity main;
@@ -48,11 +48,12 @@ public class DroneConnect implements Runnable {
         this.PORT = PORT;
         this.main = main;
         listener = null;
-        dataToDrone = new int[]{0, 0, 0, 0, 0};  //button pressed, flight mode, velocity
+        dataToDrone = new double[]{0, 0, 0, 0, 0};  //button pressed, flight mode, velocity, lat, long
         dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
         online = false;
         record = 0;
         size = new Size(640, 360);
+
 
         main.setAppListener(new AppListener() {
 
@@ -62,11 +63,9 @@ public class DroneConnect implements Runnable {
             }
 
             @Override
-            public void onUpdateDrone(int[] data) {
+            public void onUpdateDrone(double[] data) {
 
-                dataToDrone[0] = data[0];   //button
-                dataToDrone[1] = data[1];  //flight mode
-                dataToDrone[2] = data[2];  //velocity
+                dataToDrone = data;
             }
 
             @Override
@@ -149,7 +148,7 @@ public class DroneConnect implements Runnable {
                 for (int x = 0; x < dataFromDrone.length; x++) {
 
                     //send app info
-                    output.write(dataToDrone[x]);
+                    output.writeDouble(dataToDrone[x]);
 
                     //get 4 new bytes from drone and convert to int
                     intDataBytes = new byte[4];
@@ -244,11 +243,11 @@ public class DroneConnect implements Runnable {
                     }
 
                     //convert and update image view
-                    Bitmap bmp = convertMatToBitMap(myFrame);
+                    //Bitmap bmp = convertMatToBitMap();
 
                     //update image view
                     if (listener != null) {
-                        listener.onUpdateImageView(bmp);
+                        listener.onUpdateImageView(myFrame);
                     }
 
                 } else {
