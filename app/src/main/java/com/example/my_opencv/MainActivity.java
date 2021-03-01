@@ -3,6 +3,7 @@ package com.example.my_opencv;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -12,6 +13,8 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
+import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -33,6 +36,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -56,10 +60,16 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.model.LatLng;
 
+import edu.cmu.pocketsphinx.Assets;
+import edu.cmu.pocketsphinx.Hypothesis;
+import edu.cmu.pocketsphinx.RecognitionListener;
+import edu.cmu.pocketsphinx.SpeechRecognizer;
+import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
+
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements RecognitionListener {
 
     private DroneConnect droneVideo;
     private DroneConnect droneNav;
@@ -97,9 +107,19 @@ public class MainActivity extends AppCompatActivity {
     private long FASTEST_INTERVAL = 1000;
     private boolean run;
 
+    private MediaPlayer mp;
+
     private AI ai;
 
+    private SpeechRecognizer recognizer;
+    private static final String KEYPHRASE = "apad";
+    private static final String KWS_SEARCH = "wakeup";
+    private static final String MENU_SEARCH = "menu";
+
     private AppListener appListener;
+
+    /* Used to handle permission request */
+    private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -143,6 +163,18 @@ public class MainActivity extends AppCompatActivity {
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
+        // Check if user has given permission to record audio
+        int permissionCheck = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.RECORD_AUDIO);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, PERMISSIONS_REQUEST_RECORD_AUDIO);
+            return;
+        }
+        // Recognizer initialization is a time-consuming and it involves IO,
+        // so we execute it in async task
+        new SetupTask(this).execute();
+
+        mp = MediaPlayer.create(this, R.raw.chime);
+
         //drone info
         status = 0;
         flyMode = 3;
@@ -156,14 +188,14 @@ public class MainActivity extends AppCompatActivity {
         savedFlyingMode = 4;
         online = false;
         flying = false;
-        //startLocationUpdates();
+        startLocationUpdates();
         recording = false;
         paused = false;
         run = false;
 
         //AI
-        ai = new AI(getApplicationContext());
-        ai.createDDNNetwork();
+        // ai = new AI(getApplicationContext());
+        //ai.createDDNNetwork();
 
         //setup image view and text
         imageView = findViewById(R.id.opencvImageView);
@@ -186,49 +218,46 @@ public class MainActivity extends AppCompatActivity {
         //setup ontouch listeners for buttons
         for (Button button : buttons) {
 
-            button.setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
+            button.setOnTouchListener((v, event) -> {
 
-                    //get time between touch
-                    long eventDuration = event.getEventTime() - event.getDownTime();
+                //get time between touch
+                //long eventDuration = event.getEventTime() - event.getDownTime();
 
-                    //first touch handle
-                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                //first touch handle
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-                        run = true;
-                        v.setPressed(true);
-                        Thread buttonThread = new Thread(new Runnable() {
-                            public void run() {
-                                while (run) {
-                                    buttonPress(v);
+                    run = true;
+                    v.setPressed(true);
+                    Thread buttonThread = new Thread(new Runnable() {
+                        public void run() {
+                            while (run) {
+                                buttonPress(v);
 
-                                    try {
-                                        Thread.sleep(300);
-                                    } catch (InterruptedException e) {
-                                        e.printStackTrace();
-                                    }
+                                try {
+                                    Thread.sleep(300);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
                                 }
-
                             }
-                        });
 
-                        buttonThread.start();
-                    }
+                        }
+                    });
 
-                    if (event.getAction() == MotionEvent.ACTION_UP) {
-                        run = false;
-                        v.setPressed(false);
-                    }
-
-                    return true;
+                    buttonThread.start();
                 }
+
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    run = false;
+                    v.setPressed(false);
+                }
+
+                return true;
             });
         }
 
         //get raulito image
         try {
-            InputStream  r = getAssets().open("APAD.bmp");
+            InputStream r = getAssets().open("APAD.bmp");
             raulito = BitmapFactory.decodeStream(r);
             imageView.setImageBitmap(raulito);
             r.close();
@@ -355,8 +384,6 @@ public class MainActivity extends AppCompatActivity {
 
         });
 
-        startLocationUpdates();
-
         //======================================END OF ONCREAT===================================
     }
 
@@ -373,7 +400,158 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //handle online change
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+
+    }
+
+    //===============================SPEECH RECOGNITION============================================
+
+    private static class SetupTask extends AsyncTask<Void, Void, Exception> {
+        WeakReference<MainActivity> activityReference;
+
+        SetupTask(MainActivity activity) {
+            this.activityReference = new WeakReference<>(activity);
+        }
+
+        @Override
+        protected Exception doInBackground(Void... params) {
+            try {
+                Assets assets = new Assets(activityReference.get());
+                File assetDir = assets.syncAssets();
+                activityReference.get().setupRecognizer(assetDir);
+            } catch (IOException e) {
+                return e;
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Exception result) {
+            if (result != null) {
+                System.out.println("Failed to start pocketshpinx ");
+            } else {
+                activityReference.get().switchSearch(KWS_SEARCH);
+            }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+        if (recognizer != null) {
+            recognizer.cancel();
+            recognizer.shutdown();
+        }
+    }
+
+    private void setupRecognizer(File assetsDir) throws IOException {
+        // The recognizer can be configured to perform multiple searches
+        // of different kind and switch between them
+
+        recognizer = SpeechRecognizerSetup.defaultSetup()
+                .setAcousticModel(new File(assetsDir, "en-us-ptm"))
+                .setDictionary(new File(assetsDir, "cmudict-en-us.dict"))
+
+                .getRecognizer();
+        recognizer.addListener(this);
+
+        // Create keyword-activation search.
+        recognizer.addKeyphraseSearch(KWS_SEARCH, KEYPHRASE);
+
+        // Create grammar-based search
+        File commandsGrammar = new File(assetsDir, "commands.gram");
+        recognizer.addGrammarSearch(MENU_SEARCH, commandsGrammar);
+    }
+
+    private void switchSearch(String searchName) {
+        recognizer.stop();
+
+        // If we are not spotting, start listening with timeout (10000 ms or 10 seconds).
+        if (searchName.equals(KWS_SEARCH))
+            recognizer.startListening(searchName);
+
+        else
+            recognizer.startListening(searchName, 10000);
+
+        //System.out.println("=========Switched to " + searchName);
+    }
+
+    @Override
+    public void onBeginningOfSpeech() {
+
+    }
+
+    /**
+     * We stop recognizer here to get a final result
+     */
+    @Override
+    public void onEndOfSpeech() {
+        if (!recognizer.getSearchName().equals(KWS_SEARCH))
+            switchSearch(KWS_SEARCH);
+    }
+
+    /**
+     * In partial result we get quick updates about current hypothesis. In
+     * keyword spotting mode we can react here, in other modes we need to wait
+     * for final result in onResult.
+     */
+    @Override
+    public void onPartialResult(Hypothesis hypothesis) {
+        if (hypothesis == null)
+            return;
+
+        String text = hypothesis.getHypstr();
+        if (text.equals(KEYPHRASE)) {
+            mp.start();
+            switchSearch(MENU_SEARCH);
+        }
+    }
+
+    /**
+     * This callback is called when we stop the recognizer.
+     */
+    @Override
+    public void onResult(Hypothesis hypothesis) {
+        if (hypothesis != null) {
+
+            String text = hypothesis.getHypstr();
+            System.out.println("============On Result " + text);
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+
+            switch (text) {
+                case "land":
+                case "take off":
+                case "launch":
+                    button = 1;
+                    break;
+                case "take photo":
+                    saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
+                    break;
+                case "take video":
+                case "stop video":
+                case "pause video":
+                    onRecordButton(findViewById(R.id.record_button));
+                    break;
+                default:
+                    System.out.println("Other voice text:" + text);
+
+            }
+        }
+    }
+
+    @Override
+    public void onError(Exception e) {
+        Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onTimeout() {
+        switchSearch(KWS_SEARCH);
+    }
+
+    //=================================handle online change=======================================
     public void handleOnlineChange(boolean online) {
 
         this.online = online;
@@ -397,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //update gui buttons and text based on drone online status
+    //==================================update gui buttons and text based on drone online status
     @RequiresApi(api = Build.VERSION_CODES.N)
     public void handleDroneData(int[] data) {
 
@@ -408,7 +586,7 @@ public class MainActivity extends AppCompatActivity {
             statusChanged = true;
         }
 
-        //update launch/land button text and flying status
+        //======================================update launch/land button text and flying status
         if (statusChanged) {
 
             //update flying status
@@ -439,7 +617,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //update nav button visibility
+    //===============================update nav button visibility================================
     private void updateNavButtons(int visible) {
         runOnUiThread(() -> {
             //update buttons
@@ -449,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //update lanch/land button text
+    //=================================update lanch/land button text
     private void updateLaunchButton() {
 
         runOnUiThread(() -> {
@@ -461,22 +639,22 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    //function to update image view with latest video feed
+    //=========================function to update image view with latest video feed
     public void updateImageView(Mat mat) {
 
         //Bitmap bmp = ai.identify(mat);
 
-       runOnUiThread(new Runnable() {
-           @Override
-           public void run() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
                 imageView.setImageBitmap(convertMatToBitMap(mat));
-           }
-       });
+            }
+        });
 
     }
 
 
-    //handle button press
+    //==============================handle button press====================================
     public void buttonPress(View view) {
         //land/takeoff, emergency, up, down, left, right, forward, backward, rot left, rot right
         //1-10
@@ -495,10 +673,9 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-
     }
 
-    //update status text
+    //==================================update status text====================================
     private void updateStatusText() {
         String statusText;
         int color;
@@ -552,7 +729,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //convert MAT to bmp
+    //==========================convert MAT to bmp=========================================
     private static Bitmap convertMatToBitMap(Mat input) {
         Bitmap bmp = null;
         Mat rgb = new Mat();
@@ -569,7 +746,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //update status mode text
+    //==============================update status mode text====================================
     private String getFlightModeString() {
 
         String statusText = "";
@@ -646,20 +823,20 @@ public class MainActivity extends AppCompatActivity {
         return errorCodeString;
     }
 
-    //return app data for drone
+    //=================================return app data for drone
     private double[] getAppInfo() {
 
         return new double[]{button, flyMode, velocity, latitude, longitude};
 
     }
 
-    //save image to phone
+    //=================================save image to phone
     public void onPhotoTake(View view) {
         saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
         System.out.println(getDateTime());
     }
 
-    //return current date and time
+    //================================return current date and time
     private static String getDateTime() {
         //SimpleDateFormat day = new SimpleDateFormat("yyyy MM dd hh-mm-ss", Locale.getDefault());
 
@@ -667,7 +844,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //do the actual saving wink wink
+    //===============================do the actual saving wink wink
     private void saveImage(Bitmap finalBitmap, String image_name) {
 
         String root = Environment.getExternalStorageDirectory().toString();
@@ -689,7 +866,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Trigger new location updates at interval
+    // =========================Trigger new location updates at interval
     protected void startLocationUpdates() {
 
         // Create the location request to start receiving updates
@@ -723,21 +900,21 @@ public class MainActivity extends AppCompatActivity {
                 Looper.myLooper());
     }
 
-    //get new location
+    //======================================get new location
     public void onLocationChanged(Location location) {
         // New location has now been determined
 //        String msg = "Updated Location: " +
 //             Double.toString(location.getLatitude()) + "," +
 //              Double.toString(location.getLongitude());
 //        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-         //You can now create a LatLng Object for use with maps
+        //You can now create a LatLng Object for use with maps
         //LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
 
         latitude = location.getLatitude();
         longitude = location.getLongitude();
     }
 
-    // Get last known recent location using new Google Play Services SDK (v11+)
+    //================== Get last known recent location using new Google Play Services SDK (v11+)
     public void getLastLocation() {
 
         FusedLocationProviderClient locationClient = getFusedLocationProviderClient(this);
@@ -761,7 +938,7 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    //request permission for location services
+    //=================================request permission for location services
     private void requestPermissions() {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
 
@@ -769,7 +946,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    //record button
+    //====================================record button
     public void onRecordButton(View view) {
 
         if (online) {
@@ -795,7 +972,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    //record button
+    //===========================record button
     public void onPauseRecButton(View view) {
 
         if (online) {

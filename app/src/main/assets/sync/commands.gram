@@ -1,0 +1,14 @@
+#JSGF V1.0;
+
+grammar commands;
+
+<command> = launch |
+            take off |
+            land |
+            take photo |
+            take video |
+            record |
+            stop video |
+            pause video;
+
+public <commands> = <command>+;

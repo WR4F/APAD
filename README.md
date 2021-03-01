@@ -72,3 +72,9 @@ TODO: 2.8 Video recording
       Can calculatre distance between gps coords
 
 2.8.4 Added updated drone.py, droneServer.py, and ARDRONE.py which can be used to control the ar drone 2.0 by parot
+
+2.8.5 Added voice functionality with pocketsphinx
+      Always listening, use "apad" to wake up
+      Added a chime when it detects "apad" so you know its waiting for a command
+      Command words are stored in commands.gram in assets/sync
+      Needs further debugging
