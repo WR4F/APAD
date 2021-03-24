@@ -75,6 +75,7 @@ APAD Version Changes
       Added a chime when it detects "apad" so you know its waiting for a command
       Command words are stored in commands.gram in assets/sync
       Needs further debugging
+
 2.8.6 Switch voice commands to activate only from buttons
       Fixed bug with recognition not stopping correctly
       Added additional sounds for app AI and code
