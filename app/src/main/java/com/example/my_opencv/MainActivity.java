@@ -4,14 +4,15 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.multidex.MultiDex;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 
 import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
@@ -35,17 +36,14 @@ import org.opencv.imgproc.Imgproc;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
 
 
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -58,7 +56,12 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import edu.cmu.pocketsphinx.Assets;
 import edu.cmu.pocketsphinx.Hypothesis;
@@ -69,16 +72,16 @@ import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
 
-public class MainActivity extends AppCompatActivity implements RecognitionListener {
+public class MainActivity extends AppCompatActivity implements RecognitionListener, OnMapReadyCallback {
 
     private DroneConnect droneVideo;
     private DroneConnect droneNav;
     private static final String TAG = "MainActivity";
 
     //gui
-    private Button[] buttons;
+    private Button[] nav_buttons;
     private Switch connectSwitch;
-    private ImageView imageView;
+    private Bitmap imageView;
     private TextView networkStatusText;
     private Bitmap raulito;
     private Switch followMeSwitch;
@@ -92,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     private int velocity;
     private int altitude;
     private int errorCode;
+    private double droneLat;
+    private double droneLong;
 
     //app
     private boolean online;
@@ -106,20 +111,26 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     private long UPDATE_INTERVAL = 1000;
     private long FASTEST_INTERVAL = 1000;
     private boolean run;
+    private int currentMenu = 1; //imageview, maps, settings
 
     private MediaPlayer mp;
 
-    private AI ai;
+    private Intent settingIntent;
+
+    //private AI ai;
 
     private SpeechRecognizer recognizer;
-    private static final String KEYPHRASE = "apad";
-    private static final String KWS_SEARCH = "wakeup";
+    //private static final String KEYPHRASE = "apad";
+    // private static final String KWS_SEARCH = "wakeup";
     private static final String MENU_SEARCH = "menu";
-
-    private AppListener appListener;
+    private boolean loaded = false;
+    private AppListener appListener;   //for drone connect
 
     /* Used to handle permission request */
     private static final int PERMISSIONS_REQUEST_RECORD_AUDIO = 1;
+
+    private ItemViewModel viewModel;
+
 
     static {
         if (!OpenCVLoader.initDebug()) {
@@ -145,12 +156,22 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         this.appListener = listener;
     }
 
-
     @SuppressLint("ClickableViewAccessibility")
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        MultiDex.install(this);
+
+        if (savedInstanceState == null) {
+
+            getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(R.id.fragmentview, FragmentView.class, null)
+                    .commit();
+        }
+
+        viewModel = new ViewModelProvider(this).get(ItemViewModel.class);
 
         //launch opencv manager or static link
         // OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION, this, mLoaderCallback);
@@ -173,8 +194,6 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         // so we execute it in async task
         new SetupTask(this).execute();
 
-        mp = MediaPlayer.create(this, R.raw.chime);
-
         //drone info
         status = 0;
         flyMode = 3;
@@ -192,13 +211,14 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         recording = false;
         paused = false;
         run = false;
+        settingIntent = new Intent(this, SettingsActivity.class);
 
         //AI
         // ai = new AI(getApplicationContext());
         //ai.createDDNNetwork();
 
         //setup image view and text
-        imageView = findViewById(R.id.opencvImageView);
+        //imageView = findViewById(R.id.opencvImageView);
         networkStatusText = findViewById(R.id.status_text);
 
         //setup battery progress bar and text
@@ -209,14 +229,22 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
         //setup buttons
         //land, emergency, up, down, left, right, forward, backward, rot left, rot right
-        buttons = new Button[]{findViewById(R.id.takeoff_b), findViewById(R.id.emergency_b),
+        nav_buttons = new Button[]{findViewById(R.id.takeoff_b), findViewById(R.id.emergency_b),
                 findViewById(R.id.up_b), findViewById(R.id.down_b), findViewById(R.id.left_b),
                 findViewById(R.id.right_b), findViewById(R.id.forward_b), findViewById(R.id.back_b),
-                findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b), findViewById(R.id.switchc_button),
-                findViewById(R.id.baseland_b), findViewById(R.id.record_button)};
+                findViewById(R.id.rotate_left_b), findViewById(R.id.rotate_right_b)};
+
+        Button mic = findViewById(R.id.mic_button);
+        mic.setOnClickListener(v -> {
+
+            if (loaded) {
+                playSound(0);
+                switchSearch(MENU_SEARCH);
+            }
+        });
 
         //setup ontouch listeners for buttons
-        for (Button button : buttons) {
+        for (Button button : nav_buttons) {
 
             button.setOnTouchListener((v, event) -> {
 
@@ -255,16 +283,6 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             });
         }
 
-        //get raulito image
-        try {
-            InputStream r = getAssets().open("APAD.bmp");
-            raulito = BitmapFactory.decodeStream(r);
-            imageView.setImageBitmap(raulito);
-            r.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
         //IP
         String IP = "10.0.0.41";
 
@@ -289,7 +307,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             }
 
             @Override
-            public void onSetAppData(int[] data) {
+            public void onSetAppData(double[] data) {
 
             }
 
@@ -318,13 +336,16 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
             //set new drone info from drone to app
             @Override
-            public void onSetAppData(int[] data) {
+            public void onSetAppData(double[] data) {
 
                 //update error code
-                errorCode = data[4];
+                errorCode = (int) data[4];
 
                 //update battery
-                battery = data[1];
+                battery = (int)data[1];
+
+                droneLat = data[5];
+                droneLong = data[6];
 
                 handleDroneData(data);
 
@@ -384,6 +405,15 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
         });
 
+        playSound(2);
+
+        viewModel.selectStatus(online);
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.fragmentview);
+        mapFragment.getMapAsync(this);
+
+
         //======================================END OF ONCREAT===================================
     }
 
@@ -402,6 +432,138 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
     @Override
     public void onPointerCaptureChanged(boolean hasCapture) {
+
+    }
+
+    //switch to setting activity window
+    public void onSettings(View view) {
+        if (settingIntent.resolveActivity(getPackageManager()) != null) {
+            droneVideo.disconnect();
+            droneNav.disconnect();
+            startActivity(settingIntent);
+        }
+
+    }
+
+    //============================= SOUND PLAYER ===============================================
+
+    //play a specific sound
+    private void playSound(int sound) {
+
+        //reset sound file
+        release();
+
+        //play specific sound
+        switch (sound) {
+            case 0:
+                mp = MediaPlayer.create(this, R.raw.chime);
+                break;
+            case 1:
+                mp = MediaPlayer.create(this, R.raw.connected);
+                break;
+            case 2:
+                mp = MediaPlayer.create(this, R.raw.welcome);
+                break;
+            case 3:
+                mp = MediaPlayer.create(this, R.raw.disconnected);
+                break;
+            case 4:
+                mp = MediaPlayer.create(this, R.raw.landing);
+                break;
+            case 5:
+                mp = MediaPlayer.create(this, R.raw.launching);
+                break;
+            case 6:
+                mp = MediaPlayer.create(this, R.raw.flyinginmanualmode);
+                break;
+            case 7:
+                mp = MediaPlayer.create(this, R.raw.flyinginfrontfollowmode);
+                break;
+            case 8:
+                mp = MediaPlayer.create(this, R.raw.flyinginabovefollowmode);
+                break;
+            case 9:
+                mp = MediaPlayer.create(this, R.raw.recording);
+                break;
+            case 10:
+                mp = MediaPlayer.create(this, R.raw.recordingpaused);
+                break;
+            case 11:
+                mp = MediaPlayer.create(this, R.raw.recordingstopped);
+                break;
+            case 12:
+                mp = MediaPlayer.create(this, R.raw.camera_sound);
+                break;
+            case 13:
+                mp = MediaPlayer.create(this, R.raw.flyinginbehindfollowmode);
+                break;
+            case 14:
+                mp = MediaPlayer.create(this, R.raw.lowbattery);
+                break;
+            case 15:
+                mp = MediaPlayer.create(this, R.raw.photosaved);
+                break;
+            default:
+                System.out.println("wrong int called at play sound");
+                break;
+        }
+
+        System.out.println("Played: "+ sound);
+
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                mp.start();
+            }
+        });
+
+    }
+
+    //release and reset sound player object
+    private void release() {
+
+        if (mp != null) {
+            while (mp.isPlaying()) {
+
+            }
+            mp.reset();
+            mp.release();
+            mp = null;
+        }
+    }
+
+    //============================= MAP VIEW ========================================================
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        googleMap.addMarker(new MarkerOptions()
+                .position(new LatLng(droneLat, droneLong))
+                .title("Marker").icon(BitmapDescriptorFactory.fromResource(R.drawable.droneicon)));
+
+        //googleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+
+        System.out.println("DRONE COORDS: " + droneLat + " " + droneLong);
+
+    }
+
+    public void onMapClick(View view) {
+
+        if(currentMenu == 1){
+
+            currentMenu = 2;
+            SupportMapFragment mapFragment = SupportMapFragment.newInstance();
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .add(R.id.fragmentview, mapFragment)
+                    .commit();
+
+        }else{
+            currentMenu = 1;
+            getSupportFragmentManager().beginTransaction()
+                    .setReorderingAllowed(true)
+                    .add(R.id.fragmentview, FragmentView.class, null)
+                    .commit();
+        }
 
     }
 
@@ -431,7 +593,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             if (result != null) {
                 System.out.println("Failed to start pocketshpinx ");
             } else {
-                activityReference.get().switchSearch(KWS_SEARCH);
+                //activityReference.get().switchSearch(KWS_SEARCH);
+                activityReference.get().loaded = true;
             }
         }
     }
@@ -458,7 +621,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         recognizer.addListener(this);
 
         // Create keyword-activation search.
-        recognizer.addKeyphraseSearch(KWS_SEARCH, KEYPHRASE);
+        // recognizer.addKeyphraseSearch(KWS_SEARCH, KEYPHRASE);
 
         // Create grammar-based search
         File commandsGrammar = new File(assetsDir, "commands.gram");
@@ -466,14 +629,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     }
 
     private void switchSearch(String searchName) {
-        recognizer.stop();
 
-        // If we are not spotting, start listening with timeout (10000 ms or 10 seconds).
-        if (searchName.equals(KWS_SEARCH))
-            recognizer.startListening(searchName);
+        recognizer.startListening(searchName, 4000);
 
-        else
-            recognizer.startListening(searchName, 10000);
 
         //System.out.println("=========Switched to " + searchName);
     }
@@ -488,8 +646,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
      */
     @Override
     public void onEndOfSpeech() {
-        if (!recognizer.getSearchName().equals(KWS_SEARCH))
-            switchSearch(KWS_SEARCH);
+//        if (!recognizer.getSearchName().equals(KWS_SEARCH))
+//            switchSearch(KWS_SEARCH);
+        recognizer.stop();
     }
 
     /**
@@ -502,11 +661,11 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         if (hypothesis == null)
             return;
 
-        String text = hypothesis.getHypstr();
-        if (text.equals(KEYPHRASE)) {
-            mp.start();
-            switchSearch(MENU_SEARCH);
-        }
+//        String text = hypothesis.getHypstr();
+//        if (text.equals(KEYPHRASE)) {
+//            mp.start();
+//            switchSearch(MENU_SEARCH);
+//        }
     }
 
     /**
@@ -527,7 +686,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                     button = 1;
                     break;
                 case "take photo":
-                    saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
+                    saveImage(imageView, getDateTime());
                     break;
                 case "take video":
                 case "stop video":
@@ -539,6 +698,8 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
             }
         }
+
+        recognizer.stop();
     }
 
     @Override
@@ -548,7 +709,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
     @Override
     public void onTimeout() {
-        switchSearch(KWS_SEARCH);
+        //switchSearch(KWS_SEARCH);
     }
 
     //=================================handle online change=======================================
@@ -559,53 +720,61 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         updateStatusText();
 
         runOnUiThread(() -> {
+            viewModel.selectStatus(online);
+
             connectSwitch.setChecked(online);
 
             if (online) {
                 Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
+                playSound(1);
             } else {
 
-                Toast.makeText(getApplicationContext(), "Offline!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "Disconnected!", Toast.LENGTH_SHORT).show();
 
                 //update status text to offline and red
-                imageView.setImageBitmap(raulito);
-                networkStatusText.setText("Offline");
+                networkStatusText.setText("Disconnected");
                 networkStatusText.setTextColor(Color.RED);
+                playSound(3);
+                // imageView.setImageBitmap(raulito);
             }
         });
     }
 
     //==================================update gui buttons and text based on drone online status
     @RequiresApi(api = Build.VERSION_CODES.N)
-    public void handleDroneData(int[] data) {
+    public void handleDroneData(double[] data) {
 
         boolean statusChanged = false;
 
         //check if there was a status change
-        if (data[0] != status) {
+        if ((int)data[0] != status) {
             statusChanged = true;
         }
 
+        boolean finalStatusChanged = statusChanged;
+
+
         //======================================update launch/land button text and flying status
-        if (statusChanged) {
+        if (finalStatusChanged) {
 
             //update flying status
             if (status == 2 && data[0] >= 3) {
 
                 flying = true;
+                //playSound(5);
 
             } else if (status >= 3 && data[0] == 2) {
 
                 flying = false;
+                playSound(4);
             }
 
             //update status and text
-            status = data[0];
+            status = (int) data[0];
             updateStatusText();
 
             //update button
             updateLaunchButton();
-
         }
 
         //update battery
@@ -613,6 +782,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
             batteryBar.setProgress(battery, true);
             batteryText.setText(String.valueOf(battery) + "%");
+
         });
 
     }
@@ -622,19 +792,19 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         runOnUiThread(() -> {
             //update buttons
             for (int x = 2; x < 10; x++) {
-                buttons[x].setVisibility(visible);
+                nav_buttons[x].setVisibility(visible);
             }
         });
     }
 
-    //=================================update lanch/land button text
+    //=================================update launch/land button text
     private void updateLaunchButton() {
 
         runOnUiThread(() -> {
             if (flying) {
-                buttons[0].setText("Land");
+                nav_buttons[0].setText("Land");
             } else {
-                buttons[0].setText("Take Off");
+                nav_buttons[0].setText("Launch");
             }
         });
     }
@@ -647,10 +817,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                imageView.setImageBitmap(convertMatToBitMap(mat));
+                viewModel.selectBitmap(convertMatToBitMap(mat));
             }
         });
-
     }
 
 
@@ -660,9 +829,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         //1-10
 
         if (online) {
-            for (int x = 0; x < buttons.length; x++) {
+            for (int x = 0; x < nav_buttons.length; x++) {
 
-                if (view.getId() == buttons[x].getId()) {
+                if (view.getId() == nav_buttons[x].getId()) {
 
                     button = x + 1;
 
@@ -700,11 +869,12 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 statusText = "Flying: ";
                 statusText += getFlightModeString();
                 color = flyMode == 3 ? Color.BLUE : Color.MAGENTA;
-
                 break;
+
             case 4:
                 statusText = "Landing";
                 color = Color.YELLOW;
+                playSound(4);
                 break;
 
             case 5:
@@ -755,19 +925,22 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
             switch (flyMode) {
                 case 3:
                     statusText += "Manual";
-
+                    playSound(6);
                     break;
+
                 case 4:
                     statusText += "Following";
-
-
+                    playSound(7);
                     break;
+
                 case 5:
                     statusText += "Trailing";
-
+                    playSound(13);
                     break;
+
                 case 6:
                     statusText += "Above";
+                    playSound(8);
                     break;
 
                 default:
@@ -785,6 +958,7 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         switch (errorCode) {
             case 1:
                 errorCodeString = "Low battery";
+                playSound(14);
                 break;
 
             case 2:
@@ -826,13 +1000,14 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
     //=================================return app data for drone
     private double[] getAppInfo() {
 
-        return new double[]{button, flyMode, velocity, latitude, longitude};
+        return new double[]{button, flyMode, velocity, latitude, longitude, 0, 0};
 
     }
 
     //=================================save image to phone
     public void onPhotoTake(View view) {
-        saveImage(((BitmapDrawable) imageView.getDrawable()).getBitmap(), getDateTime());
+
+        saveImage(imageView, getDateTime());
         System.out.println(getDateTime());
     }
 
@@ -846,9 +1021,9 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
 
     //===============================do the actual saving wink wink
     private void saveImage(Bitmap finalBitmap, String image_name) {
-
+        playSound(12);
         String root = Environment.getExternalStorageDirectory().toString();
-        File myDir = new File(root, "Drone");
+        File myDir = new File(root);
         myDir.mkdirs();
         String fname = "" + image_name + ".jpg";
         File file = new File(myDir, fname);
@@ -864,9 +1039,12 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        Toast.makeText(getApplicationContext(), "Image Saved", Toast.LENGTH_SHORT).show();
+        playSound(15);
     }
 
-    // =========================Trigger new location updates at interval
+    // =========================Trigger new location updates at interval========================
     protected void startLocationUpdates() {
 
         // Create the location request to start receiving updates
@@ -958,10 +1136,12 @@ public class MainActivity extends AppCompatActivity implements RecognitionListen
                 id = 1;
                 recording = true;
                 status = "Stop";
+                playSound(9);
             } else {
                 id = 3;
                 recording = false;
                 status = "Rec";
+                playSound(11);
             }
 
             //notify drone connect and update button text

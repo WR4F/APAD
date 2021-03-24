@@ -1,3 +1,4 @@
+include ':google-api-client-android-1.31.1'
 include ':pocketsphinx-android-5prealpha-release'
 include ':aar'
 include ':pocketsphinx-android-5prealpha-release'

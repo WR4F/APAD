@@ -4,7 +4,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/mainlayout"
     tools:context=".MainActivity">
+
+    <fragment
+        class="com.google.android.gms.maps.SupportMapFragment"
+        android:id="@+id/fragmentview"
+        android:name="com.example.my_opencv.FragmentView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:layout_editor_absoluteX="397dp"
+        tools:layout_editor_absoluteY="203dp" />
 
     <Button
         android:id="@+id/up_b"
@@ -168,72 +178,62 @@
         android:layout_marginLeft="168dp"
         android:layout_marginBottom="40dp"
         android:background="@drawable/takeoff_button_layout"
-        android:text="Take Off"
+        android:text="Launch"
         android:textStyle="bold"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/switchc_button"
+        android:id="@+id/map_button"
         android:layout_width="48dp"
         android:layout_height="36dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="268dp"
         android:layout_marginRight="268dp"
-        android:text="SC"
+        android:background="@android:drawable/ic_menu_mapmode"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:onClick="onMapClick"/>
 
     <Button
-        android:id="@+id/settings_button"
+        android:id="@+id/settings_b"
         android:layout_width="45dp"
         android:layout_height="38dp"
         android:layout_marginTop="12dp"
         android:layout_marginEnd="172dp"
         android:layout_marginRight="172dp"
-        android:text="S"
+        android:background="@android:drawable/ic_menu_preferences"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:onClick="onSettings"/>
 
     <Button
         android:id="@+id/mic_button"
-        android:layout_width="56dp"
+        android:layout_width="44dp"
         android:layout_height="38dp"
         android:layout_marginEnd="260dp"
         android:layout_marginRight="260dp"
         android:layout_marginBottom="44dp"
-        android:text="Mic"
+        android:background="@android:drawable/presence_audio_busy"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <Button
         android:id="@+id/photo_button"
-        android:layout_width="65dp"
-        android:layout_height="37dp"
+        android:layout_width="63dp"
+        android:layout_height="41dp"
         android:layout_marginStart="284dp"
         android:layout_marginLeft="284dp"
         android:layout_marginBottom="44dp"
+        android:background="@android:drawable/ic_menu_camera"
         android:onClick="onPhotoTake"
-        android:text="Photo"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <ImageView
-        android:id="@+id/opencvImageView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible"
-        app:layout_constraintBottom_toTopOf="@+id/emergency_b"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0" />
 
     <ProgressBar
         android:id="@+id/battery_progress"
@@ -251,9 +251,8 @@
         android:id="@+id/connect_s"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="52dp"
-        android:layout_marginRight="52dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="32dp"
         android:text="Online"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"

@@ -44,7 +44,8 @@ class Drone:
         uart = serial.Serial("/dev/serial0", baudrate=9600, timeout=10)
 
         # Create a GPS module instance.
-        self.gps = adafruit_gps.GPS(uart, debug=False) 
+        self.gps = adafruit_gps.GPS(uart, debug=False)
+        self.gps.send_command(b"PMTK314,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0")
         self.gps.send_command(b'PMTK220,1000')
         self.last_print = time.monotonic()
 
@@ -297,7 +298,7 @@ class Drone:
     
     # update drone info list
     def updateInfo(self):
-        return self.status, self.battery, self.velocity, self.altitude, self.errorCode
+        return self.status * 1.0, self.battery * 1.0, self.velocity * 1.0, self.altitude * 1.0, self.errorCode * 1.0, self.droneLAT, self.droneLONG
     
     # stop whatever the drone is doing
     def stopEverything(self):
@@ -328,19 +329,19 @@ class Drone:
         
         self.gps.update()
 
-
         if not self.gps.has_fix:
             print('Waiting for fix...')
             return False
 
         self.droneLAT = self.gps.latitude
         self.droneLONG = self.gps.longitude
+        self.droneANGLE = self.gps.track_angle_deg
 
-        print('=' * 40)  # Print a separator line.
+        #print('=' * 40)  # Print a separator line.
         #print('Latitude: {0:.6f} degrees'.format(self.gps.latitude))
         #print('Longitude: {0:.6f} degrees'.format(self.gps.longitude))
 
-        self.handleGPS()
+        #self.handleGPS()
     
     def handleGPS(self):
         #radius of the Earth
@@ -360,9 +361,9 @@ class Drone:
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         distance = R * c  
         
-        print('{0:.6f} {0:.6f} {0:.6f} {0:.6f}'.format(self.droneLAT, self.appLAT, self.droneLONG, self.appLONG))    
+        #print('{0:.6f} {0:.6f} {0:.6f} {0:.6f} { }'.format(self.droneLAT, self.appLAT, self.droneLONG, self.appLONG, self.droneANGLE))    
 
-        print(distance)
+        #print(distance)
 
 
 

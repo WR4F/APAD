@@ -35,7 +35,7 @@ public class DroneConnect implements Runnable {
     protected boolean online;
 
     protected double[] dataToDrone;
-    protected int[] dataFromDrone;
+    protected double[] dataFromDrone;
     protected DroneListener listener;
     protected MainActivity main;
 
@@ -48,12 +48,11 @@ public class DroneConnect implements Runnable {
         this.PORT = PORT;
         this.main = main;
         listener = null;
-        dataToDrone = new double[]{0, 0, 0, 0, 0};  //button pressed, flight mode, velocity, lat, long
-        dataFromDrone = new int[]{0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code
+        dataToDrone = new double[]{0, 0, 0, 0, 0, 0, 0};  //button pressed, flight mode, velocity, lat, long
+        dataFromDrone = new double[]{0, 0, 0, 0, 0, 0, 0};  //status, battery, velocity, altitude, error code, long, lat
         online = false;
         record = 0;
         size = new Size(640, 360);
-
 
         main.setAppListener(new AppListener() {
 
@@ -130,7 +129,7 @@ public class DroneConnect implements Runnable {
 
         //String reply = "";
 
-        int intData; // int
+        double intData; // int
         byte[] intDataBytes; // int in bytes
 
         while (online) {
@@ -151,9 +150,9 @@ public class DroneConnect implements Runnable {
                     output.writeDouble(dataToDrone[x]);
 
                     //get 4 new bytes from drone and convert to int
-                    intDataBytes = new byte[4];
+                    intDataBytes = new byte[8];
                     input.read(intDataBytes);
-                    intData = ByteBuffer.wrap(intDataBytes).asIntBuffer().get();
+                    intData = ByteBuffer.wrap(intDataBytes).asDoubleBuffer().get();
 
                     //update drone info
                     dataFromDrone[x] = intData;

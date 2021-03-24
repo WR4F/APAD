@@ -1,11 +1,8 @@
 # Autonomous Personal Assistant Drone
 
-TODO: 2.8 Video recording
-      2.9 Voice recognition mechanics/logic
-      3.0 GPS comparison to tell drone where to move
-      4.0 All follow me modes implemented using gps
+TODO: Video recording
 
-===================APAD-LandScape Version Changes=================/n
+APAD Version Changes
 
 1.0: APAD App that launches in landscape mode. Connects to server to get live camera feed
 
@@ -78,3 +75,15 @@ TODO: 2.8 Video recording
       Added a chime when it detects "apad" so you know its waiting for a command
       Command words are stored in commands.gram in assets/sync
       Needs further debugging
+2.8.6 Switch voice commands to activate only from buttons
+      Fixed bug with recognition not stopping correctly
+      Added additional sounds for app AI and code
+      Added youtube android streaming API to project
+      Switched imageview to a fragment to switch between map view
+      Using a view model to communicate between fragment and main
+      Updated server script to version 5, fixed a nav unpack issue by adding a if else checker
+      Fixed a mediaplayer sound bug with wrong state when playing
+      Added a google map fragment view to show where the drone is on the map
+      Added a settings window
+      Fixed settings window so it would disconnect the sockets before switching windows
+      

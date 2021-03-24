@@ -4,7 +4,7 @@ from Drone import Drone
 # import thread module 
 from threading import Thread
 
-#=================Drone Server Version 4==================================
+#=================Drone Server Version 5==================================
 
 #logging
 logging.basicConfig(level=logging.NOTSET)
@@ -86,7 +86,7 @@ def nav_connect():
         
         log.info("Navigation connection established.")
 
-        recv = [0,0,0,0,0]
+        recv = [0,0,0,0,0,0,0]
 
         with c:
             
@@ -99,23 +99,30 @@ def nav_connect():
                     #log.info("passed getDroneData")
 
                     #recieve -> send
-                    for x in range(0,len(recv)):
+                    for x in range(0, len(recv)):
 
                         #recive bytes
                         data = c.recv(4096)
-
+                        
                         #conver from binary to int and place in recv list
-                        integer = struct.unpack("!d",data)[0]
+                        if len(data) >= 8:    
+                            integer = struct.unpack("!d", data)[0]
+                            #print(integer)
+                        else:
+                            integer = 0
+
                         recv[x]= integer        
 
                         #send drone data to app
-                        c.sendall(send[x].to_bytes(4, byteorder='big'))
+                        #c.sendall(send[x].to_bytes(8, byteorder='big'))
+                        sending = struct.pack("!d",send[x])
+                        c.sendall(sending)
                     
                     #log.info("recieved:" + str(recv))
                     
                     #log.info("sent:" + str(send))
                     
-                    print(recv)
+                    #print(recv)
                     
                     #send app data to drone    
                     drone.sendAppData(recv)
@@ -129,6 +136,9 @@ def nav_connect():
                     log.debug("Overflow error: " + str(e))
                     log.info("Send: " + str(send))
                     log.info("Recieved" + str(recv))
+                
+                except struct.error as e:
+                    log.debug(str(e))
         
         drone.resetDrone()
                 
