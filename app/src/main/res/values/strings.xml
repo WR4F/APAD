@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">My_Opencv</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+
+    <!-- Preference Titles -->
+    <string name="voice_header">Voice</string>
+    <string name="Flight_header">Flight Controls</string>
+
+    <!-- Voice Preferences -->
+    <string name="voice_narration">Voice Narration</string>
+
+    <!-- Flight Preferences -->
+    <string name="drone_velocity">Drone Velocity</string>
+    <string name="drone_position">Follow Me Location</string>
+
 </resources>

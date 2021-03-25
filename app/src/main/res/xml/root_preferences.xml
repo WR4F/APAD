@@ -1,0 +1,28 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/Flight_header">
+
+        <EditTextPreference
+            app:key="signature"
+            app:title="@string/drone_velocity"
+            app:useSimpleSummaryProvider="true" />
+        <EditTextPreference
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:key="edit_text_preference_1"
+            app:key="signature"
+            app:title="@string/drone_position"
+            app:useSimpleSummaryProvider="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/voice_header">
+
+        <SwitchPreferenceCompat
+            app:key="sync"
+            app:title="@string/voice_narration" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
