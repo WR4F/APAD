@@ -8,13 +8,13 @@
     tools:context=".MainActivity">
 
     <fragment
-        class="com.google.android.gms.maps.SupportMapFragment"
         android:id="@+id/fragmentview"
         android:name="com.example.my_opencv.FragmentView"
+        class="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:layout_editor_absoluteX="397dp"
-        tools:layout_editor_absoluteY="203dp" />
+        tools:layout_editor_absoluteX="-16dp"
+        tools:layout_editor_absoluteY="0dp" />
 
     <Button
         android:id="@+id/up_b"
@@ -47,9 +47,10 @@
         android:id="@+id/pauserec_b"
         android:layout_width="65dp"
         android:layout_height="37dp"
-        android:layout_marginStart="400dp"
-        android:layout_marginLeft="400dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginStart="452dp"
+        android:layout_marginBottom="36dp"
+        android:background="@drawable/takeoff_button_layout"
+        android:backgroundTint="@color/white"
         android:onClick="onPauseRecButton"
         android:text="Pause"
         android:textSize="12sp"
@@ -58,11 +59,10 @@
 
     <Button
         android:id="@+id/emergency_b"
-        android:layout_width="102dp"
-        android:layout_height="37dp"
-        android:layout_marginStart="372dp"
-        android:layout_marginLeft="372dp"
-        android:layout_marginTop="8dp"
+        android:layout_width="94dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="12dp"
         android:background="@drawable/emergency_button_layout"
         android:text="Emergency"
         android:textStyle="bold"
@@ -71,24 +71,13 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/baseland_b"
-        android:layout_width="84dp"
-        android:layout_height="56dp"
-        android:layout_marginStart="28dp"
-        android:layout_marginLeft="28dp"
-        android:layout_marginBottom="32dp"
-        android:text="Base Land"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
         android:id="@+id/record_button"
-        android:layout_width="65dp"
-        android:layout_height="37dp"
-        android:layout_marginStart="400dp"
-        android:layout_marginLeft="400dp"
-        android:layout_marginBottom="80dp"
+        android:layout_width="67dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="260dp"
+        android:layout_marginBottom="36dp"
+        android:background="@drawable/takeoff_button"
+        android:backgroundTint="@color/white"
         android:onClick="onRecordButton"
         android:text="Rec"
         android:textSize="12sp"
@@ -174,9 +163,8 @@
         android:id="@+id/takeoff_b"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="168dp"
-        android:layout_marginLeft="168dp"
-        android:layout_marginBottom="40dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/takeoff_button_layout"
         android:text="Launch"
         android:textStyle="bold"
@@ -186,37 +174,34 @@
 
     <Button
         android:id="@+id/map_button"
-        android:layout_width="48dp"
-        android:layout_height="36dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="268dp"
-        android:layout_marginRight="268dp"
+        android:layout_width="54dp"
+        android:layout_height="44dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="312dp"
         android:background="@android:drawable/ic_menu_mapmode"
+        android:onClick="onMapClick"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:onClick="onMapClick"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/settings_b"
         android:layout_width="45dp"
         android:layout_height="38dp"
         android:layout_marginTop="12dp"
-        android:layout_marginEnd="172dp"
-        android:layout_marginRight="172dp"
+        android:layout_marginEnd="4dp"
         android:background="@android:drawable/ic_menu_preferences"
+        android:onClick="onSettings"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:onClick="onSettings"/>
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/mic_button"
         android:layout_width="44dp"
         android:layout_height="38dp"
-        android:layout_marginEnd="260dp"
-        android:layout_marginRight="260dp"
-        android:layout_marginBottom="44dp"
+        android:layout_marginEnd="392dp"
+        android:layout_marginBottom="36dp"
         android:background="@android:drawable/presence_audio_busy"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -224,35 +209,25 @@
 
     <Button
         android:id="@+id/photo_button"
-        android:layout_width="63dp"
-        android:layout_height="41dp"
-        android:layout_marginStart="284dp"
-        android:layout_marginLeft="284dp"
-        android:layout_marginBottom="44dp"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="300dp"
+        android:layout_marginTop="19dp"
+        android:layout_marginBottom="348dp"
         android:background="@android:drawable/ic_menu_camera"
         android:onClick="onPhotoTake"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <ProgressBar
-        android:id="@+id/battery_progress"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:layout_width="54dp"
-        android:layout_height="19dp"
-        android:layout_marginStart="196dp"
-        android:layout_marginLeft="196dp"
-        android:layout_marginTop="16dp"
-        android:visibility="visible"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@+id/fragmentview"
+        app:layout_constraintVertical_bias="0.166" />
 
     <Switch
         android:id="@+id/connect_s"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="32dp"
+        android:layout_width="143dp"
+        android:layout_height="28dp"
+        android:layout_marginTop="316dp"
+        android:layout_marginEnd="16dp"
         android:text="Online"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
@@ -262,9 +237,8 @@
         android:id="@+id/followme_switch"
         android:layout_width="143dp"
         android:layout_height="43dp"
-        android:layout_marginEnd="52dp"
-        android:layout_marginRight="52dp"
-        android:layout_marginBottom="40dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:text="Follow Me"
         android:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -272,10 +246,9 @@
 
     <TextView
         android:id="@+id/status_text"
-        android:layout_width="141dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="28dp"
-        android:layout_marginLeft="28dp"
+        android:layout_width="49dp"
+        android:layout_height="21dp"
+        android:layout_marginStart="636dp"
         android:layout_marginTop="16dp"
         android:text="Offline"
         android:textColor="@android:color/holo_red_dark"
@@ -287,8 +260,7 @@
         android:id="@+id/battery_text"
         android:layout_width="38dp"
         android:layout_height="20dp"
-        android:layout_marginStart="284dp"
-        android:layout_marginLeft="284dp"
+        android:layout_marginStart="704dp"
         android:layout_marginTop="16dp"
         android:text="100%"
         android:visibility="visible"

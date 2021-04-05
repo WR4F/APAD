@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">My_Opencv</string>
     <string name="title_activity_settings">SettingsActivity</string>
+    <string name="connect_button">Connect</string>
+    <string name="available_drones">Available Drones:</string>
+
+
 
     <!-- Preference Titles -->
     <string name="voice_header">Voice</string>
